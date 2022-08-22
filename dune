@@ -1,1 +1,5 @@
-(executable (name aeroon) (libraries ctypes.foreign))
+(executable
+  (name aeroon)
+  (libraries ctypes.foreign)
+  (flags -cclib -L/home/mika/jobs/onechronos/aeron/build/lib -cclib -laeron)
+)
