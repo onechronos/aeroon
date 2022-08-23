@@ -4,8 +4,85 @@ open Foreign
 type clientd = unit ptr
 let clientd = ptr void
 
+let abstract_1 name =
+  abstract ~name ~size:1 ~alignment:1
+
 module Error_Handler =
-  (val (dynamic_funptr (clientd @-> int @-> string @-> returning void)))
+  (val (
+     dynamic_funptr (
+       clientd @->
+         int @->
+         string @->
+         returning void
+     )
+   )
+  )
+
+let client_registering_resource : [`Registering_resource] abstract typ =
+  abstract_1 "aeron_client_registering_resource_stct"
+
+let async_add_publication  = client_registering_resource
+let async_add_subscription = client_registering_resource
+
+module On_new_publication =
+  (val (
+     dynamic_funptr (
+       clientd @->                       (* clientd        *)
+         (ptr async_add_publication) @-> (* async          *)
+         string @->                      (* channel        *)
+         int32_t @->                     (* stream_id      *)
+         int64_t @->                     (* correlation_id *)
+         returning void
+     )
+   )
+  )
+
+module On_new_subscription = On_new_publication
+
+let subscription : [`Subscription] abstract typ =
+  abstract_1 "aeron_subscription_stct"
+
+let image : [`Image ] abstract typ =
+  abstract_1 "aeron_image_stct"
+
+module On_available_image =
+  (val (
+     dynamic_funptr (
+       clientd @->              (* clientd      *)
+         (ptr subscription) @-> (* subscription *)
+         (ptr image) @->        (* image        *)
+         returning void
+     )
+   )
+  )
+
+module On_unavailable_image = On_available_image
+
+let counters_reader : [`Counters_reader] abstract typ =
+  abstract_1 "aeron_counters_reader_stct"
+
+module On_available_counter =
+  (val (
+     dynamic_funptr (
+       clientd @->                 (* clientd         *)
+         (ptr counters_reader) @-> (* counters_reader *)
+         int64_t @->               (* registration_id *)
+         int32_t @->               (* counter_id      *)
+         returning void
+     )
+   )
+  )
+
+module On_unavailable_counter = On_available_counter
+
+module On_close_client =
+  (val (
+     dynamic_funptr (
+       clientd @->
+         returning void
+     )
+   )
+  )
 
 module Context = struct
   let t : [`Context] abstract typ =
@@ -65,6 +142,30 @@ module Context = struct
     foreign "aeron_context_set_error_handler"
       ((ptr t) @-> Error_Handler.t @-> clientd @-> returning int)
 
+  let set_on_new_publication =
+    foreign "aeron_context_set_on_new_publication"
+      ((ptr t) @-> On_new_publication.t @-> clientd @-> returning int)
+
+  let set_on_new_exclusive_publication =
+    foreign "aeron_context_set_on_new_exclusive_publication"
+      ((ptr t) @-> On_new_publication.t @-> clientd @-> returning int)
+
+  let set_on_new_subscription =
+    foreign "aeron_context_set_on_new_subscription"
+      ((ptr t) @-> On_new_subscription.t @-> clientd @-> returning int)
+
+  let set_on_available_counter =
+    foreign "aeron_context_set_on_available_counter"
+      ((ptr t) @-> On_available_counter.t @-> clientd @-> returning int)
+
+  let set_on_unavailable_counter =
+    foreign "aeron_context_set_on_unavailable_counter"
+      ((ptr t) @-> On_unavailable_counter.t @-> clientd @-> returning int)
+
+  let set_on_close_client =
+    foreign "aeron_context_set_on_close_client"
+      ((ptr t) @-> On_close_client.t @-> clientd @-> returning int)
+
 end
 
 let pr = Printf.printf
@@ -91,12 +192,72 @@ let _ =
       pr "pre_touch_mappped_memory=%b\n"
         (Context.get_pre_touch_mapped_memory ctx);
 
-      let _x = Context.set_error_handler ctx (
+      let _ = Context.set_error_handler ctx (
         Error_Handler.of_fun (
           fun _ code msg ->
             Printf.printf "error code=%d msg=%s\n%!" code msg
         )
-      ) in
+      ) null in
+
+      let _ = Context.set_on_new_publication ctx (
+        On_new_publication.of_fun (
+          fun _ _ channel stream_id correlation_id ->
+            Printf.printf "new publication \
+                           channel=%s \
+                           stream_id=%ld \
+                           correlation_id=%Ld\n%!"
+              channel stream_id correlation_id
+        )
+      ) null in
+
+      let _ = Context.set_on_new_exclusive_publication ctx (
+        On_new_publication.of_fun (
+          fun _ _ channel stream_id correlation_id ->
+            Printf.printf "new exclusive publication \
+                           channel=%s \
+                           stream_id=%ld \
+                           correlation_id=%Ld\n%!"
+              channel stream_id correlation_id
+        )
+      ) null in
+
+      let _ = Context.set_on_new_subscription ctx (
+        On_new_subscription.of_fun (
+          fun _ _ channel stream_id correlation_id ->
+            Printf.printf "new subscription \
+                           channel=%s \
+                           stream_id=%ld \
+                           correlation_id=%Ld\n%!"
+              channel stream_id correlation_id
+        )
+      ) null in
+
+      let _ = Context.set_on_available_counter ctx (
+        On_available_counter.of_fun (
+          fun _ _ registration_id counter_id ->
+            Printf.printf "available counter \
+                           registration_id=%Ld \
+                           counter_id=%ld\n%!"
+              registration_id counter_id
+        )
+      ) null in
+
+      let _ = Context.set_on_unavailable_counter ctx (
+        On_unavailable_counter.of_fun (
+          fun _ _ registration_id counter_id ->
+            Printf.printf "unavailable counter \
+                           registration_id=%Ld \
+                           counter_id=%ld\n%!"
+              registration_id counter_id
+        )
+      ) null in
+
+      let _ = Context.set_on_close_client ctx (
+        On_close_client.of_fun (
+          fun _ ->
+            Printf.printf "close client\n%!"
+        )
+      ) null in
       ()
 
       (*
