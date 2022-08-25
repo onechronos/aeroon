@@ -44,7 +44,6 @@ let _ =
   pr "use_conductor_agent_invoker=%b\n"
     (context_get_use_conductor_agent_invoker ctx);
 
-  (*
   let error_handler = Error_Handler.of_fun (
     fun _ code msg ->
       Printf.printf "error code=%d msg=%s\n%!" code msg
@@ -121,8 +120,6 @@ let _ =
 
   let _ = context_set_on_close_client ctx on_close null in
   keep_alive (`OC on_close);
-
-  *)
 
   let p_client = alloc_ptr_client () in
   let err = init p_client ctx in
