@@ -13,7 +13,7 @@ let subscription : [`Subscription] abstract typ =
 let image : [`Image ] abstract typ =
   abstract_1 "aeron_image_stct"
 
-let dyfnp = dynamic_funptr ~runtime_lock:true ~thread_registration:true
+let dyfnp = dynamic_funptr (* ~runtime_lock:true *) ~thread_registration:true
 
 module On_available_image =
   (val (dyfnp (
@@ -319,14 +319,42 @@ let fragment_assembler_create =
      @-> returning int
     )
 
+let fragment_assembler_handler : Fragment_handler.fn =
+  foreign "aeron_fragment_assembler_handler"
+    (clientd             (* clientd *)
+     @-> (ptr uint8_t)   (* buffer  *)
+     @-> size_t          (* length  *)
+     @-> (ptr header)    (* header  *)
+     @-> returning void
+    )
+
 let subscription_poll =
   foreign "aeron_subscription_poll"
     ((ptr subscription)
     @-> Fragment_handler.t (* handler *)
-    @-> clientd            (* clientd *)
+    @-> (ptr fragment_assembler) (* fragment_assembler *)
     @-> size_t             (* fragment_limit *)
     @-> returning int
    )
+
+module Reserved_value_supplier =
+  (val (dyfnp (
+     clientd               (* clientd *)
+     @-> ptr uint8_t       (* buffer *)
+     @-> size_t            (* frame_length *)
+     @-> returning int64_t
+   )))
+
+
+let exclusive_publication_offer =
+  foreign "aeron_exclusive_publication_offer"
+    ((ptr exclusive_publication)       (* exclusive_publication   *)
+     @-> (ptr uint8_t)                 (* buffer                  *)
+     @-> size_t                        (* length                  *)
+     @-> Reserved_value_supplier.t_opt (* reserved_value_supplier *)
+     @-> clientd                       (* clientd                 *)
+     @-> returning int64_t
+    )
 
 let errcode =
   foreign "aeron_errcode"
@@ -349,6 +377,11 @@ let alloc_ptr_client_registering_resource () =
 let alloc_ptr_publication () =
   allocate (ptr publication) (from_voidp publication null)
 
+let alloc_ptr_exclusive_publication () =
+  allocate (ptr exclusive_publication) (from_voidp exclusive_publication null)
+
 let alloc_ptr_subscription () =
   allocate (ptr subscription) (from_voidp subscription null)
 
+let alloc_ptr_fragment_assembler () =
+  allocate (ptr fragment_assembler) (from_voidp fragment_assembler null)
