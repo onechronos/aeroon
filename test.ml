@@ -1,4 +1,4 @@
-let uri = "aeron:udp?endpoint=localhost:20121"
+let channel = "aeron:udp?endpoint=localhost:20121"
 let stream_id = 1001l
 
 open Aeroon
@@ -141,21 +141,24 @@ let _ =
   let _ = context_set_on_close_client ctx on_close null in
   keep_alive (`OC on_close);
 
-  let p_async_add_publication = alloc_ptr_client_registering_resource () in
-  let err = async_add_publication p_async_add_publication client uri stream_id in
-  assert (err = 0);
-
-  let async_add_publication = !@ p_async_add_publication in
-  let p_publication = alloc_ptr_publication () in
-
-  let rec poll () =
-    match async_add_publication_poll p_publication async_add_publication with
-    | 1 -> !@ p_publication
-    | 0 -> poll ()
-    | -1 -> failwith "failed async publication"
-    | _ -> assert false
+  let async_add_publication =
+    let p_async_add_publication = alloc_ptr_client_registering_resource () in
+    let err = async_add_publication p_async_add_publication client channel stream_id in
+    assert (err = 0);
+    !@ p_async_add_publication
   in
-  let publication = poll () in
+
+  let publication =
+    let p_publication = alloc_ptr_publication () in
+    let rec poll () =
+      match async_add_publication_poll p_publication async_add_publication with
+      | 1 -> !@ p_publication
+      | 0 -> poll ()
+      | -1 -> failwith "failed async publication"
+      | _ -> assert false
+    in
+    poll ()
+  in
 
   Unix.sleep 100;
 
