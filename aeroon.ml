@@ -15,6 +15,39 @@ let subscription : [`Subscription] abstract typ =
 let image : [`Image ] abstract typ =
   abstract_1 "aeron_image_stct"
 
+let publication : [`Publication] abstract typ =
+  abstract_1 "aeron_publication_stct"
+
+let exclusive_publication : [`Exclusive_publication] abstract typ =
+  abstract_1 "aeron_exclusive_publication_stct"
+
+let counters_reader : [`Counters_reader] abstract typ =
+  abstract_1 "aeron_counters_reader_stct"
+
+let context : [`Context] abstract typ =
+  abstract ~name:"aeron_context_stct" ~size:1 ~alignment:1
+
+let client_registering_resource : [`Registering_resource] abstract typ =
+  abstract_1 "aeron_client_registering_resource_stct"
+
+let client : [`Client] abstract typ =
+  abstract ~name:"aeron_stct" ~size:1 ~alignment:1
+
+let exclusive_publication : [`Exclusive_publication] abstract typ =
+  abstract_1 "aeron_exclusive_publication_stct"
+
+let subscription : [`Subscription] abstract typ =
+  abstract_1 "aeron_subscription_stct"
+
+let counter : [`Counter] abstract typ =
+  abstract_1 "aeron_counter_stct"
+
+let header : [`Header] abstract typ =
+  abstract_1 "aeron_header_stct"
+
+let fragment_assembler : [`Fragment_assembler] abstract typ =
+  abstract_1 "aeron_fragment_assembler_stct"
+
 module On_available_image =
   (val (dyfnp (
      clientd                (* clientd      *)
@@ -24,12 +57,6 @@ module On_available_image =
    )))
 
 module On_unavailable_image = On_available_image
-
-let counters_reader : [`Counters_reader] abstract typ =
-  abstract_1 "aeron_counters_reader_stct"
-
-let context : [`Context] abstract typ =
-  abstract ~name:"aeron_context_stct" ~size:1 ~alignment:1
 
 let context_get_dir =
   foreign "aeron_context_get_dir"
@@ -85,9 +112,6 @@ module Error_Handler =
 let context_set_error_handler =
   foreign "aeron_context_set_error_handler"
     ((ptr context) @-> Error_Handler.t @-> clientd @-> returning int)
-
-let client_registering_resource : [`Registering_resource] abstract typ =
-  abstract_1 "aeron_client_registering_resource_stct"
 
 module On_new_publication =
   (val (dyfnp (
@@ -168,9 +192,6 @@ let context_close =
   foreign "aeron_context_close"
     ((ptr context) @-> returning int)
 
-let client : [`Client] abstract typ =
-  abstract ~name:"aeron_stct" ~size:1 ~alignment:1
-
 let init =
   foreign "aeron_init"
     ((ptr (ptr client)) @-> (ptr context) @-> returning int)
@@ -226,9 +247,6 @@ let async_add_publication =
      @-> returning int
     )
 
-let publication : [`Publication] abstract typ =
-  abstract_1 "aeron_publication_stct"
-
 let async_add_publication_poll =
   foreign "aeron_async_add_publication_poll"
     ((ptr (ptr publication))
@@ -250,6 +268,14 @@ let publication_close =
     @-> returning int
    )
 
+let exclusive_publication_close =
+  foreign "aeron_exclusive_publication_close"
+    ((ptr exclusive_publication)
+    @-> Notification.t_opt
+    @-> clientd
+    @-> returning int
+   )
+
 let async_add_exclusive_publication =
   foreign "aeron_async_add_exclusive_publication"
     ((ptr (ptr client_registering_resource))
@@ -258,9 +284,6 @@ let async_add_exclusive_publication =
      @-> int32_t
      @-> returning int
     )
-
-let exclusive_publication : [`Exclusive_publication] abstract typ =
-  abstract_1 "aeron_exclusive_publication_stct"
 
 let async_add_exclusive_publication_poll =
   foreign "aeron_async_add_exclusive_publication_poll"
@@ -281,9 +304,6 @@ let async_add_subscription =
     @-> clientd                              (* on_available_image_clientd   *)
     @-> returning int
    )
-
-let subscription : [`Subscription] abstract typ =
-  abstract_1 "aeron_subscription_stct"
 
 let async_add_subscription_poll =
   foreign "aeron_async_add_subscription_poll"
@@ -308,9 +328,6 @@ let async_add_counter =
       @-> returning int
     )
 
-let counter : [`Counter] abstract typ =
-  abstract_1 "aeron_counter_stct"
-
 let async_add_counter_poll =
   foreign "aeron_async_add_counter_poll"
     (ptr (ptr counter)
@@ -322,9 +339,6 @@ let subscription_channel_status =
   foreign "aeron_subscription_channel_status"
     ((ptr subscription) @-> returning int64_t)
 
-let header : [`Header] abstract typ =
-  abstract_1 "aeron_header_stct"
-
 module Fragment_handler =
   (val (dyfnp (
      clientd            (* clientd *)
@@ -333,9 +347,6 @@ module Fragment_handler =
      @-> (ptr header)   (* header  *)
      @-> returning void
    )))
-
-let fragment_assembler : [`Fragment_assembler] abstract typ =
-  abstract_1 "aeron_fragment_assembler_stct"
 
 let fragment_assembler_create =
   foreign "aeron_fragment_assembler_create"
