@@ -9,17 +9,11 @@ let abstract_1 name =
 
 let dyfnp = dynamic_funptr (* ~runtime_lock:true *) ~thread_registration:true
 
-let subscription : [`Subscription] abstract typ =
-  abstract_1 "aeron_subscription_stct"
-
 let image : [`Image ] abstract typ =
   abstract_1 "aeron_image_stct"
 
 let publication : [`Publication] abstract typ =
   abstract_1 "aeron_publication_stct"
-
-let exclusive_publication : [`Exclusive_publication] abstract typ =
-  abstract_1 "aeron_exclusive_publication_stct"
 
 let counters_reader : [`Counters_reader] abstract typ =
   abstract_1 "aeron_counters_reader_stct"
@@ -31,7 +25,7 @@ let client_registering_resource : [`Registering_resource] abstract typ =
   abstract_1 "aeron_client_registering_resource_stct"
 
 let client : [`Client] abstract typ =
-  abstract ~name:"aeron_stct" ~size:1 ~alignment:1
+  abstract_1 "aeron_stct"
 
 let exclusive_publication : [`Exclusive_publication] abstract typ =
   abstract_1 "aeron_exclusive_publication_stct"
@@ -339,10 +333,12 @@ let subscription_channel_status =
   foreign "aeron_subscription_channel_status"
     ((ptr subscription) @-> returning int64_t)
 
+(* NOTE: aeronc.h refers to buffer as *uint8_t, but we use *char here
+   for use of conversion using Ctypes.string_from_ptr *)
 module Fragment_handler =
   (val (dyfnp (
      clientd            (* clientd *)
-     @-> (ptr uint8_t)  (* buffer  *)
+     @-> (ptr char)     (* buffer  *)
      @-> size_t         (* length  *)
      @-> (ptr header)   (* header  *)
      @-> returning void
@@ -359,7 +355,7 @@ let fragment_assembler_create =
 let fragment_assembler_handler : Fragment_handler.fn =
   foreign "aeron_fragment_assembler_handler"
     (clientd             (* clientd *)
-     @-> (ptr uint8_t)   (* buffer  *)
+     @-> (ptr char)      (* buffer  *)
      @-> size_t          (* length  *)
      @-> (ptr header)    (* header  *)
      @-> returning void
