@@ -7,13 +7,13 @@ let clientd = ptr void
 let abstract_1 name =
   abstract ~name ~size:1 ~alignment:1
 
+let dyfnp = dynamic_funptr (* ~runtime_lock:true *) ~thread_registration:true
+
 let subscription : [`Subscription] abstract typ =
   abstract_1 "aeron_subscription_stct"
 
 let image : [`Image ] abstract typ =
   abstract_1 "aeron_image_stct"
-
-let dyfnp = dynamic_funptr (* ~runtime_lock:true *) ~thread_registration:true
 
 module On_available_image =
   (val (dyfnp (
@@ -89,7 +89,19 @@ let context_set_error_handler =
 let client_registering_resource : [`Registering_resource] abstract typ =
   abstract_1 "aeron_client_registering_resource_stct"
 
-module On_new_pubsub =
+module On_new_publication =
+  (val (dyfnp (
+     clientd                               (* clientd        *)
+     @-> (ptr client_registering_resource) (* async          *)
+     @-> string                            (* channel        *)
+     @-> int32_t                           (* stream_id      *)
+     @-> int32_t                           (* session_id     *)
+     @-> int64_t                           (* correlation_id *)
+     @-> returning void
+   )))
+
+
+module On_new_subscription =
   (val (dyfnp (
      clientd                               (* clientd        *)
      @-> (ptr client_registering_resource) (* async          *)
@@ -101,15 +113,15 @@ module On_new_pubsub =
 
 let context_set_on_new_publication =
   foreign "aeron_context_set_on_new_publication"
-    ((ptr context) @-> On_new_pubsub.t @-> clientd @-> returning int)
+    ((ptr context) @-> On_new_publication.t @-> clientd @-> returning int)
 
 let context_set_on_new_exclusive_publication =
   foreign "aeron_context_set_on_new_exclusive_publication"
-    ((ptr context) @-> On_new_pubsub.t @-> clientd @-> returning int)
+    ((ptr context) @-> On_new_publication.t @-> clientd @-> returning int)
 
 let context_set_on_new_subscription =
   foreign "aeron_context_set_on_new_subscription"
-    ((ptr context) @-> On_new_pubsub.t @-> clientd @-> returning int)
+    ((ptr context) @-> On_new_subscription.t @-> clientd @-> returning int)
 
 module On_available_counter =
   (val (dyfnp (
@@ -222,6 +234,20 @@ let async_add_publication_poll =
     ((ptr (ptr publication))
      @-> (ptr client_registering_resource)
      @-> returning int
+   )
+
+module Notification =
+  (val (dyfnp (
+     clientd (* clientd *)
+     @-> returning void
+   )))
+
+let publication_close =
+  foreign "aeron_publication_close"
+    ((ptr publication)
+    @-> Notification.t_opt
+    @-> clientd
+    @-> returning int
    )
 
 let async_add_exclusive_publication =
