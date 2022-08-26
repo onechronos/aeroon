@@ -56,7 +56,7 @@ let subscribe () =
   in
 
   let fragment_handler = Fragment_handler.of_fun (
-    fun _ buf size header ->
+    fun _ _buf size _header ->
       Printf.printf "received fragment of size %d\n%!" (s_to_i size);
   ) in
 

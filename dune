@@ -1,5 +1,0 @@
-(executables
-  (names test pubsub)
-  (libraries ctypes.foreign)
-  (flags -cclib -L/home/mika/jobs/onechronos/aeron/build/lib -cclib -laeron)
-)
