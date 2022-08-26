@@ -6,7 +6,7 @@ let stream_id = 1001l
 
 
 let s_of_i  = Unsigned.Size_t.of_int
-let i_to_s  = Unsigned.Size_t.to_int
+let s_to_i  = Unsigned.Size_t.to_int
 
 let u8_of_i = Unsigned.UInt8.of_int
 let u8_to_i = Unsigned.UInt8.to_int
@@ -57,7 +57,7 @@ let subscribe () =
 
   let fragment_handler = Fragment_handler.of_fun (
     fun _ buf size header ->
-      Printf.printf "received fragment of size %d\n%!" (i_to_s size);
+      Printf.printf "received fragment of size %d\n%!" (s_to_i size);
   ) in
 
   let fragment_assembler =
@@ -130,7 +130,7 @@ let publish () =
     else
       ()
   in
-  pub 10 0;
+  pub 100 0;
 
   print_endline "close";
   let _ = close client in
