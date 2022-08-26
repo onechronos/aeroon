@@ -56,8 +56,9 @@ let subscribe () =
   in
 
   let fragment_handler = Fragment_handler.of_fun (
-    fun _ _buf size _header ->
-      Printf.printf "received fragment of size %d\n%!" (s_to_i size);
+    fun _ buf size _header ->
+      let message = string_from_ptr buf ~length:(s_to_i size) in
+      Printf.printf "received: %s\n%!" message
   ) in
 
   let fragment_assembler =
