@@ -101,16 +101,16 @@ let publish () =
 
   let async =
     let p_async = alloc_ptr_client_registering_resource () in
-    let err = async_add_exclusive_publication p_async client channel stream_id in
+    let err = async_add_publication p_async client channel stream_id in
     assert (err >= 0);
     !@ p_async
   in
 
-  let exclusive_publication =
-    let p_exclusive_publication = alloc_ptr_exclusive_publication () in
+  let publication =
+    let p_publication = alloc_ptr_publication () in
     let rec poll () =
-      match async_add_exclusive_publication_poll p_exclusive_publication async with
-      | 1 -> !@ p_exclusive_publication
+      match async_add_publication_poll p_publication async with
+      | 1 -> !@ p_publication
       | 0 -> poll ()
       | _ -> assert false
     in
@@ -122,7 +122,7 @@ let publish () =
 
   let rec pub n i =
     if i < n then
-      let status = exclusive_publication_offer exclusive_publication
+      let status = publication_offer publication
           (CArray.start buffer) buffer_size None null in
       pr "status=%Ld\n%!" status;
       Unix.sleep 1;

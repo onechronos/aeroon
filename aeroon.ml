@@ -372,6 +372,16 @@ module Reserved_value_supplier =
    )))
 
 
+let publication_offer =
+  foreign "aeron_publication_offer"
+    ((ptr publication)                 (* publication             *)
+     @-> (ptr uint8_t)                 (* buffer                  *)
+     @-> size_t                        (* length                  *)
+     @-> Reserved_value_supplier.t_opt (* reserved_value_supplier *)
+     @-> clientd                       (* clientd                 *)
+     @-> returning int64_t
+    )
+
 let exclusive_publication_offer =
   foreign "aeron_exclusive_publication_offer"
     ((ptr exclusive_publication)       (* exclusive_publication   *)
