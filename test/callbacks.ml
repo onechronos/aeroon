@@ -1,12 +1,17 @@
 let channel = "aeron:udp?endpoint=localhost:20121"
 let stream_id = 1001l
 
-open Aeroon
+open Aeron
 open Ctypes
+open C.Functions
 
 let pr = Printf.printf
 let u64_to_i = Unsigned.UInt64.to_int
 
+
+type callback = unit
+
+(*
 type callback = [
   | `EH of Error_Handler.t
   | `OAC of On_available_counter.t
@@ -15,25 +20,27 @@ type callback = [
   | `ONS of On_new_subscription.t
   | `OC of On_close_client.t
 ]
+*)
 
 (* keep global refrences to callbacks to avoid their GC; this seems to
    eliminate the warning in:
 
 https://github.com/ocamllabs/ocaml-ctypes/blob/9048ac78b885cc3debeeb020c56ea91f459a4d33/src/ctypes-foreign/ctypes_ffi.ml#L270
  *)
+
 let kept_alive : callback list ref = ref []
 let keep_alive (a : callback) =
   kept_alive := a :: !kept_alive
 
 let _ =
   let ctx =
-    let p_context = alloc_ptr_context () in
+    let p_context = Alloc.ptr_context () in
     let err = context_init p_context in
     assert (err = 0);
     !@ p_context
   in
 
-  let p_client = alloc_ptr_client () in
+  let p_client = Alloc.ptr_client () in
   let err = init p_client ctx in
   assert (err = 0);
   let client = !@ p_client in
@@ -134,23 +141,24 @@ let _ =
   let _ = context_set_on_unavailable_counter ctx on_unavailable_counter null in
   keep_alive (`OUC on_unavailable_counter);
   *)
-  let on_close = On_close_client.of_fun (
+  let on_close =
     fun _ ->
       Printf.printf "close client\n%!"
-  ) in
+  in
 
   let _ = context_set_on_close_client ctx on_close null in
-  keep_alive (`OC on_close);
+
+  (* keep_alive (`OC on_close); *)
 
   let async =
-    let p_async = alloc_ptr_client_registering_resource () in
+    let p_async = Alloc.ptr_async_add_publication () in
     let err = async_add_publication p_async client channel stream_id in
     assert (err = 0);
     !@ p_async
   in
 
   let publication =
-    let p_publication = alloc_ptr_publication () in
+    let p_publication = Alloc.ptr_publication () in
     let rec poll () =
       match async_add_publication_poll p_publication async with
       | 1 -> !@ p_publication

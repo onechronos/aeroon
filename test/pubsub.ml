@@ -1,5 +1,6 @@
-open Aeroon
+open Aeron
 open Ctypes
+open C.Functions
 
 let channel = "aeron:udp?endpoint=localhost:20121"
 let stream_id = 1001l
@@ -15,14 +16,14 @@ let pr = Printf.printf
 
 let context_and_client () =
   let ctx =
-    let p_context = alloc_ptr_context () in
+    let p_context = Alloc.ptr_context () in
     let err = context_init p_context in
     assert (err = 0);
     !@ p_context
   in
 
   let client =
-    let p_client = alloc_ptr_client () in
+    let p_client = Alloc.ptr_client () in
     let err = init p_client ctx in
     assert (err = 0);
     !@ p_client
@@ -38,14 +39,14 @@ let subscribe () =
   let ctx, client = context_and_client () in
 
   let async =
-    let p_async = alloc_ptr_client_registering_resource () in
+    let p_async = Alloc.ptr_async_add_subscription () in
     let err = async_add_subscription p_async client channel stream_id None null None null in
     assert (err >= 0);
     !@ p_async
   in
 
   let subscription =
-    let p_subscription = alloc_ptr_subscription () in
+    let p_subscription = Alloc.ptr_subscription () in
     let rec poll () =
       match async_add_subscription_poll p_subscription async with
       | 1 -> !@ p_subscription
@@ -55,14 +56,14 @@ let subscribe () =
     poll ()
   in
 
-  let fragment_handler = Fragment_handler.of_fun (
+  let fragment_handler =
     fun _ buf size _header ->
       let message = string_from_ptr buf ~length:(s_to_i size) in
       Printf.printf "received: %s\n%!" message
-  ) in
+  in
 
   let fragment_assembler =
-    let p_fragment_assembler = alloc_ptr_fragment_assembler () in
+    let p_fragment_assembler = Alloc.ptr_fragment_assembler () in
     let err = fragment_assembler_create p_fragment_assembler fragment_handler null in
     assert (err = 0);
     !@ p_fragment_assembler
@@ -101,7 +102,7 @@ let publish () =
   let ctx, client = context_and_client () in
 
   let async =
-    let p_async = alloc_ptr_client_registering_resource () in
+    let p_async = Alloc.ptr_add_sync_publication () in
     let err = async_add_publication p_async client channel stream_id in
     assert (err >= 0);
     !@ p_async

@@ -1,6 +1,22 @@
 (library
- (name aeroon)
- (public_name aeroon)
- (libraries ctypes.foreign)
- (c_library_flags -L/home/mika/jobs/onechronos/aeron/build/lib -laeron)
+ (name aeron)
+ ; (libraries core)
+ ; ctypes backward compatibility shims warn sometimes; suppress them
+ (flags (:standard -w -9-27))
+ (ctypes
+  (external_library_name libaeron_static)
+  (build_flags_resolver
+    (vendored (c_flags -I /home/mika/jobs/onechronos/aeron/aeron-client/src/main/c))
+  )
+  (headers (include "aeronc.h"))
+  (type_description
+   (instance Type)
+   (functor Type_description))
+  (function_description
+   (concurrency sequential)
+   (instance Functions)
+   (functor Function_description))
+  (generated_types Types_generated)
+  (generated_entry_point C)
+ )
 )
