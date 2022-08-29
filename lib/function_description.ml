@@ -61,13 +61,24 @@ module Functions(F: Ctypes.FOREIGN) = struct
     foreign "aeron_context_get_pre_touch_mapped_memory"
       ((ptr T.context) @-> returning bool)
 
+  let agent_on_start =
+    funptr Ctypes_static.(
+      (ptr void) (* state     *)
+      @-> string (* role name *)
+      @-> returning int
+    )
+
+  let contex_set_agent_on_start =
+    foreign "aeron_context_set_agent_on_start_function"
+      ((ptr T.context) @-> agent_on_start @-> (ptr void) @-> returning int)
+
   let error_handler =
     funptr Ctypes_static.(
-       T.clientd
-       @-> int
-       @-> string
-       @-> returning void
-     )
+      T.clientd
+      @-> int
+      @-> string
+      @-> returning void
+    )
 
   let context_set_error_handler =
     foreign "aeron_context_set_error_handler"
@@ -75,25 +86,25 @@ module Functions(F: Ctypes.FOREIGN) = struct
 
   let on_new_publication =
     funptr Ctypes_static.(
-       T.clientd                             (* clientd        *)
-       @-> (ptr T.async_add_publication)     (* async          *)
-       @-> string                            (* channel        *)
-       @-> int32_t                           (* stream_id      *)
-       @-> int32_t                           (* session_id     *)
-       @-> int64_t                           (* correlation_id *)
-       @-> returning void
-     )
+      T.clientd                             (* clientd        *)
+      @-> (ptr T.async_add_publication)     (* async          *)
+      @-> string                            (* channel        *)
+      @-> int32_t                           (* stream_id      *)
+      @-> int32_t                           (* session_id     *)
+      @-> int64_t                           (* correlation_id *)
+      @-> returning void
+    )
 
 
   let on_new_subscription =
     funptr Ctypes_static.(
-       T.clientd                             (* clientd        *)
-       @-> (ptr T.async_add_subscription)    (* async          *)
-       @-> string                            (* channel        *)
-       @-> int32_t                           (* stream_id      *)
-       @-> int64_t                           (* correlation_id *)
-       @-> returning void
-     )
+      T.clientd                             (* clientd        *)
+      @-> (ptr T.async_add_subscription)    (* async          *)
+      @-> string                            (* channel        *)
+      @-> int32_t                           (* stream_id      *)
+      @-> int64_t                           (* correlation_id *)
+      @-> returning void
+    )
 
   let context_set_on_new_publication =
     foreign "aeron_context_set_on_new_publication"
@@ -107,14 +118,18 @@ module Functions(F: Ctypes.FOREIGN) = struct
     foreign "aeron_context_set_on_new_subscription"
       ((ptr T.context) @-> on_new_subscription @-> T.clientd @-> returning int)
 
+  let subscription_is_connected =
+    foreign "subscription_is_connected"
+      ((ptr T.subscription) @-> returning bool)
+
   let on_available_counter =
     funptr Ctypes_static.(
-       T.clientd                   (* clientd         *)
-       @-> (ptr T.counters_reader) (* counters_reader *)
-       @-> int64_t                 (* registration_id *)
-       @-> int32_t                 (* counter_id      *)
-       @-> returning void
-     )
+      T.clientd                   (* clientd         *)
+      @-> (ptr T.counters_reader) (* counters_reader *)
+      @-> int64_t                 (* registration_id *)
+      @-> int32_t                 (* counter_id      *)
+      @-> returning void
+    )
 
   let on_unavailable_counter = on_available_counter
 
@@ -128,9 +143,9 @@ module Functions(F: Ctypes.FOREIGN) = struct
 
   let on_close_client =
     funptr Ctypes_static.(
-       T.clientd
-       @-> returning void
-     )
+      T.clientd
+      @-> returning void
+    )
 
   let context_set_on_close_client =
     foreign "aeron_context_set_on_close_client"
@@ -178,9 +193,9 @@ module Functions(F: Ctypes.FOREIGN) = struct
 
   let stream_out =
     funptr Ctypes_static.(
-       string
-       @-> returning void
-     )
+      string
+      @-> returning void
+    )
 
   let print_counters =
     foreign "aeron_print_counters"
@@ -216,9 +231,9 @@ module Functions(F: Ctypes.FOREIGN) = struct
 
   let notification =
     funptr_opt Ctypes_static.(
-       T.clientd (* clientd *)
-       @-> returning void
-     )
+      T.clientd (* clientd *)
+      @-> returning void
+    )
 
   let publication_close =
     foreign "aeron_publication_close"
@@ -233,6 +248,22 @@ module Functions(F: Ctypes.FOREIGN) = struct
       ((ptr T.exclusive_publication)
        @-> notification
        @-> T.clientd
+       @-> returning int
+      )
+
+  let subscription_close =
+    foreign "aeron_subscription_close"
+      ((ptr T.subscription)
+       @-> notification
+       @-> T.clientd
+       @-> returning int
+      )
+
+  let counter_close =
+    foreign "aeron_counter_close"
+      ((ptr T.counter)
+       @-> notification (* on_close_complete         *)
+       @-> T.clientd    (* on_close_complete_clientd *)
        @-> returning int
       )
 
@@ -303,12 +334,12 @@ module Functions(F: Ctypes.FOREIGN) = struct
      for use of conversion using Ctypes.string_from_ptr *)
   let fragment_handler =
     funptr Ctypes_static.(
-       T.clientd            (* clientd *)
-       @-> (ptr char  )     (* buffer  *)
-       @-> size_t           (* length  *)
-       @-> (ptr T.header)   (* header  *)
-       @-> returning void
-     )
+      T.clientd            (* clientd *)
+      @-> (ptr char  )     (* buffer  *)
+      @-> size_t           (* length  *)
+      @-> (ptr T.header)   (* header  *)
+      @-> returning void
+    )
 
   let fragment_assembler_create =
     foreign "aeron_fragment_assembler_create"
@@ -318,8 +349,37 @@ module Functions(F: Ctypes.FOREIGN) = struct
        @-> returning int
       )
 
+  let fragment_assembler_delete =
+    foreign "aeron_fragment_assembler_delete"
+      ((ptr T.fragment_assembler)
+       @-> returning int
+      )
+
+  let image_fragment_assembler_create =
+    foreign "aeron_image_fragment_assembler_create"
+      (ptr (ptr T.image_fragment_assembler)
+       @-> fragment_handler   (* delegate *)
+       @-> T.clientd          (* delegate_clientd *)
+       @-> returning int
+      )
+
+  let image_fragment_assembler_delete =
+    foreign "aeron_image_fragment_assembler_delete"
+      ((ptr T.image_fragment_assembler)
+       @-> returning int
+      )
+
   let fragment_assembler_handler =
     foreign "aeron_fragment_assembler_handler"
+      (T.clientd           (* clientd *)
+       @-> (ptr char)      (* buffer  *)
+       @-> size_t          (* length  *)
+       @-> (ptr T.header)  (* header  *)
+       @-> returning void
+      )
+
+  let image_fragment_assembler_handler =
+    foreign "aeron_image_fragment_assembler_handler"
       (T.clientd           (* clientd *)
        @-> (ptr char)      (* buffer  *)
        @-> size_t          (* length  *)
@@ -338,11 +398,11 @@ module Functions(F: Ctypes.FOREIGN) = struct
 
   let reserved_value_supplier =
     funptr_opt Ctypes_static.(
-       T.clientd             (* clientd *)
-       @-> ptr uint8_t       (* buffer *)
-       @-> size_t            (* frame_length *)
-       @-> returning int64_t
-     )
+      T.clientd             (* clientd *)
+      @-> ptr uint8_t       (* buffer *)
+      @-> size_t            (* frame_length *)
+      @-> returning int64_t
+    )
 
 
   let publication_offer =
@@ -372,5 +432,75 @@ module Functions(F: Ctypes.FOREIGN) = struct
   let errmsg =
     foreign "aeron_errmsg"
       (void @-> returning string)
+
+  let subscription_image_at_index =
+    foreign "aeron_subscription_image_at_index"
+      ((ptr T.subscription) (* subscription *)
+      @-> size_t            (* index        *)
+      @-> returning (ptr T.image)
+     )
+
+  let subscription_image_retain =
+    foreign "aeron_subscription_image_retain"
+      ((ptr T.subscription) (* subscription *)
+      @-> (ptr T.image)     (* image        *)
+      @-> returning int
+     )
+
+  let subscription_image_release =
+    foreign "aeron_subscription_image_release"
+      ((ptr T.subscription) (* subscription *)
+      @-> (ptr T.image)     (* image        *)
+      @-> returning int
+     )
+
+  let counters_reader_foreach_counter_fn =
+    funptr Ctypes_static.(
+      int64_t        (* value        *)
+      @-> int32_t    (* id           *)
+      @-> int32_t    (* type_id      *)
+      @-> (ptr char) (* key          *)
+      @-> size_t     (* key_length   *)
+      @-> (ptr char) (* label        *)
+      @-> size_t     (* label_length *)
+      @-> T.clientd  (* clientd      *)
+      @-> returning void
+    )
+
+  let counters_reader_foreach_counter =
+    foreign "aeron_counters_reader_foreach_counter"
+      ((ptr T.counters_reader)                (* counters_reader *)
+       @-> counters_reader_foreach_counter_fn (* func            *)
+       @-> T.clientd                          (* clientd         *)
+       @-> returning void
+      )
+
+  let counters_reader_max_counter_id =
+    foreign "aeron_counters_max_counter_id"
+      ((ptr T.counters_reader) @-> returning int32_t)
+
+  let counters_reader_addr =
+    foreign "aeron_counters_reader_addr"
+      ((ptr T.counters_reader) (* counters_reader *)
+       @-> int32_t             (* counter_id      *)
+       @-> returning int64_t
+      )
+
+  let counters_reader_registration_id =
+    foreign "aeron_counters_reader_counter_registration_id"
+      ((ptr T.counters_reader) (* counters_reader *)
+       @-> int32_t             (* counter_id      *)
+       @-> (ptr int64_t)       (* registration_id *)
+       @-> returning int
+      )
+
+  let image_poll =
+    foreign "aeron_image_poll"
+      ((ptr T.image)       (* image          *)
+      @-> fragment_handler (* handler        *)
+      @-> T.clientd        (* clientd        *)
+      @-> size_t           (* fragment_limit *)
+      @-> returning int
+     )
 
 end

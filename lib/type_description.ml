@@ -10,7 +10,6 @@ module Types(F: Ctypes.TYPE) = struct
   let abstract_1 name =
     abstract ~name ~size:1 ~alignment:1
 
-  (* let aeron_null_counter_id = constant "AERON_NULL_COUNTER_ID" int *)
   let image : [`Image ] abstract typ =
     abstract_1 "aeron_image_t"
 
@@ -21,7 +20,7 @@ module Types(F: Ctypes.TYPE) = struct
     abstract_1 "aeron_counters_reader_t"
 
   let context : [`Context] abstract typ =
-    abstract ~name:"aeron_context_t" ~size:1 ~alignment:1
+    abstract_1 "aeron_context_t"
 
   let async_add_publication : [`Async_add_publication] abstract typ =
     abstract_1 "aeron_async_add_publication_t"
@@ -56,5 +55,7 @@ module Types(F: Ctypes.TYPE) = struct
   let fragment_assembler : [`Fragment_assembler] abstract typ =
     abstract_1 "aeron_fragment_assembler_t"
 
+  let image_fragment_assembler : [`Image_fragment_assembler] abstract typ =
+    abstract_1 "aeron_image_fragment_assembler_t"
 
 end
