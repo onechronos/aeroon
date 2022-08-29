@@ -76,9 +76,7 @@ let subscribe () =
     if num_fragments_read < 0 then
       pr "subscribe error: %s\n%!" (errmsg ())
     else (
-      Printf.printf "num_fragments_received = %d\n%!" num_fragments_read;
-      Unix.sleep 1;
-      (* main_idle_strategy client 100; *)
+      main_idle_strategy client num_fragments_read;
       poll ()
     )
   in
