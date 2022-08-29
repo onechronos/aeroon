@@ -1,5 +1,6 @@
 (library
  (name aeron)
+ (public_name aeroon)
  ; ctypes backward compatibility shims warn sometimes; suppress them
  (flags (:standard -w -9-27))
  (libraries ctypes.foreign)
