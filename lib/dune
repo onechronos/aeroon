@@ -7,8 +7,9 @@
   (external_library_name libaeroon)
   (build_flags_resolver
     (vendored
-     (c_flags -I /home/mika/jobs/onechronos/aeron/aeron-client/src/main/c)
-     (c_library_flags -L/home/mika/jobs/onechronos/aeron/build/lib -laeron)
+     ; AERON_ROOT environment variable required
+     (c_flags -I "%{env:AERON_ROOT=/path/to/aeron}/aeron-client/src/main/c")
+     (c_library_flags -L"%{env:AERON_ROOT=/path/to/aeron}/build/lib" -laeron)
     )
   )
   (headers (include "aeronc.h"))
