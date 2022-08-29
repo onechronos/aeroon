@@ -8,29 +8,28 @@ open C.Functions
 let pr = Printf.printf
 let u64_to_i = Unsigned.UInt64.to_int
 
-
-type callback = unit
-
-(*
-type callback = [
-  | `EH of Error_Handler.t
-  | `OAC of On_available_counter.t
-  | `OUC of On_unavailable_counter.t
-  | `ONP of On_new_publication.t
-  | `ONS of On_new_subscription.t
-  | `OC of On_close_client.t
-]
-*)
-
 (* keep global refrences to callbacks to avoid their GC; this seems to
    eliminate the warning in:
 
 https://github.com/ocamllabs/ocaml-ctypes/blob/9048ac78b885cc3debeeb020c56ea91f459a4d33/src/ctypes-foreign/ctypes_ffi.ml#L270
- *)
+*)
+
+
+(*
+type callback = [
+  | `EH of (unit -> int -> string -> unit)
+  | `ONP of (unit -> unit -> string -> int32 -> int32 -> int64 -> unit)
+  | `OAC of n_available_counte
+  | `OUC of On_unavailable_counter.t
+  | `ONS of On_new_subscription.t
+  | `OC of On_close_client.t
+]
 
 let kept_alive : callback list ref = ref []
 let keep_alive (a : callback) =
   kept_alive := a :: !kept_alive
+ *)
+
 
 let _ =
   let ctx =
@@ -65,16 +64,15 @@ let _ =
   pr "use_conductor_agent_invoker=%b\n%!"
     (context_get_use_conductor_agent_invoker ctx);
 
-  (*
-  let error_handler = Error_Handler.of_fun (
+  let error_handler =
     fun _ code msg ->
       Printf.printf "error code=%d msg=%s\n%!" code msg
-  ) in
+  in
 
   let _ = context_set_error_handler ctx error_handler null in
-  keep_alive (`EH error_handler);
+  (* keep_alive (`EH error_handler); *)
 
-  let on_publication = On_new_publication.of_fun (
+  let on_publication =
     fun _ _ channel stream_id session_id correlation_id ->
       Printf.printf "new publication \
                      channel=%s \
@@ -82,12 +80,12 @@ let _ =
                      session_id=%ld \
                      correlation_id=%Ld\n%!"
         channel stream_id session_id correlation_id
-  ) in
+  in
 
   let _ = context_set_on_new_publication ctx on_publication null in
-  keep_alive (`ONP on_publication);
+  (* keep_alive (`ONP on_publication); *)
 
-  let on_exclusive_publication = On_new_publication.of_fun (
+  let on_exclusive_publication =
     fun _ _ channel stream_id session_id correlation_id ->
       Printf.printf "new exclusive publication \
                      channel=%s \
@@ -95,23 +93,23 @@ let _ =
                      session_id=%ld \
                      correlation_id=%Ld\n%!"
         channel stream_id session_id correlation_id
-  ) in
+  in
   let _ = context_set_on_new_exclusive_publication ctx on_exclusive_publication null in
-  keep_alive (`ONP on_exclusive_publication);
+  (* keep_alive (`ONP on_exclusive_publication); *)
 
-  let on_subscription = On_new_subscription.of_fun (
+  let on_subscription =
     fun _ _ channel stream_id correlation_id ->
       Printf.printf "new subscription \
                      channel=%s \
                      stream_id=%ld \
                      correlation_id=%Ld\n%!"
         channel stream_id correlation_id
-  ) in
+  in
 
   let _ = context_set_on_new_subscription ctx on_subscription null in
-  keep_alive (`ONS on_subscription);
+  (* keep_alive (`ONS on_subscription); *)
 
-  let pr_on_available_counter =
+  let on_available_counter =
     fun _ _ registration_id counter_id ->
       Printf.printf "available counter \
                      registration_id=%Ld \
@@ -119,14 +117,10 @@ let _ =
         registration_id counter_id
   in
 
-  let on_available_counter =
-    On_available_counter.of_fun pr_on_available_counter
-  in
-
   let _ = context_set_on_available_counter ctx on_available_counter null in
-  keep_alive (`OAC on_available_counter);
+  (* keep_alive (`OAC on_available_counter); *)
 
-  let pr_unavailable_counter =
+  let on_unavailable_counter =
     fun _ _ registration_id counter_id ->
       Printf.printf "unavailable counter \
                      registration_id=%Ld \
@@ -134,20 +128,15 @@ let _ =
         registration_id counter_id
   in
 
-  let on_unavailable_counter =
-    On_unavailable_counter.of_fun pr_unavailable_counter
-  in
-
   let _ = context_set_on_unavailable_counter ctx on_unavailable_counter null in
-  keep_alive (`OUC on_unavailable_counter);
-  *)
+  (* keep_alive (`OUC on_unavailable_counter); *)
+
   let on_close =
     fun _ ->
       Printf.printf "close client\n%!"
   in
 
   let _ = context_set_on_close_client ctx on_close null in
-
   (* keep_alive (`OC on_close); *)
 
   let async =

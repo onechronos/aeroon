@@ -9,9 +9,6 @@ let stream_id = 1001l
 let s_of_i  = Unsigned.Size_t.of_int
 let s_to_i  = Unsigned.Size_t.to_int
 
-let u8_of_i = Unsigned.UInt8.of_int
-let u8_to_i = Unsigned.UInt8.to_int
-
 let pr = Printf.printf
 
 let context_and_client () =
@@ -32,7 +29,6 @@ let context_and_client () =
   let err = start client in
   assert (err = 0);
   ctx, client
-
 
 
 let subscribe () =
@@ -69,14 +65,11 @@ let subscribe () =
     !@ p_fragment_assembler
   in
 
-  let fragment_assembler_handler_fn =
-    Fragment_handler.of_fun fragment_assembler_handler in
-
   let rec poll () =
     let num_fragments_read =
       subscription_poll
         subscription
-        fragment_assembler_handler_fn
+        fragment_assembler_handler
         fragment_assembler
         (s_of_i 10)
     in
@@ -102,14 +95,14 @@ let publish () =
   let ctx, client = context_and_client () in
 
   let async =
-    let p_async = Alloc.ptr_add_sync_publication () in
+    let p_async = Alloc.ptr_async_add_publication () in
     let err = async_add_publication p_async client channel stream_id in
     assert (err >= 0);
     !@ p_async
   in
 
   let publication =
-    let p_publication = alloc_ptr_publication () in
+    let p_publication = Alloc.ptr_publication () in
     let rec poll () =
       match async_add_publication_poll p_publication async with
       | 1 -> !@ p_publication
@@ -119,13 +112,14 @@ let publish () =
     poll ()
   in
 
-  let buffer = CArray.of_list uint8_t (List.map u8_of_i [1;2;3;4;5]) in
-  let buffer_size = s_of_i (CArray.length buffer) in
+  let msg = "This is a test of the emergency broadcast system. This is \
+             only a test." in
+  let buffer_size = s_of_i (String.length msg) in
 
   let rec pub n i =
     if i < n then
       let status = publication_offer publication
-          (CArray.start buffer) buffer_size None null in
+          msg buffer_size None null in
       pr "status=%Ld\n%!" status;
       Unix.sleep 1;
       pub n (i + 1)

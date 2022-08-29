@@ -5,23 +5,16 @@ module T = Types_generated
 module Functions(F: Ctypes.FOREIGN) = struct
   open F
 
-  (* let dyfnp = dynamic_funptr (* ~runtime_lock:true *) ~thread_registration:true *)
+  let funptr     = Foreign.funptr     (* ~runtime_lock:true *) ~thread_registration:true
+  let funptr_opt = Foreign.funptr_opt (* ~runtime_lock:true *) ~thread_registration:true
 
-  let on_available_image_fn =
-    static_funptr Ctypes_static.(
+  let on_available_image =
+    funptr_opt Ctypes_static.(
       T.clientd                (* clientd      *)
       @-> (ptr T.subscription) (* subscription *)
       @-> (ptr T.image)        (* image        *)
       @-> returning void
     )
-
-  let on_available_image =
-    static_funptr Ctypes_static.(
-       T.clientd                (* clientd      *)
-       @-> (ptr T.subscription) (* subscription *)
-       @-> (ptr T.image)        (* image        *)
-       @-> returning void
-     )
 
   let on_unavailable_image = on_available_image
 
@@ -69,7 +62,7 @@ module Functions(F: Ctypes.FOREIGN) = struct
       ((ptr T.context) @-> returning bool)
 
   let error_handler =
-    static_funptr Ctypes_static.(
+    funptr Ctypes_static.(
        T.clientd
        @-> int
        @-> string
@@ -81,7 +74,7 @@ module Functions(F: Ctypes.FOREIGN) = struct
       ((ptr T.context) @-> error_handler @-> T.clientd @-> returning int)
 
   let on_new_publication =
-    static_funptr Ctypes_static.(
+    funptr Ctypes_static.(
        T.clientd                             (* clientd        *)
        @-> (ptr T.async_add_publication)     (* async          *)
        @-> string                            (* channel        *)
@@ -93,7 +86,7 @@ module Functions(F: Ctypes.FOREIGN) = struct
 
 
   let on_new_subscription =
-    static_funptr Ctypes_static.(
+    funptr Ctypes_static.(
        T.clientd                             (* clientd        *)
        @-> (ptr T.async_add_subscription)    (* async          *)
        @-> string                            (* channel        *)
@@ -115,7 +108,7 @@ module Functions(F: Ctypes.FOREIGN) = struct
       ((ptr T.context) @-> on_new_subscription @-> T.clientd @-> returning int)
 
   let on_available_counter =
-    static_funptr Ctypes_static.(
+    funptr Ctypes_static.(
        T.clientd                   (* clientd         *)
        @-> (ptr T.counters_reader) (* counters_reader *)
        @-> int64_t                 (* registration_id *)
@@ -134,7 +127,7 @@ module Functions(F: Ctypes.FOREIGN) = struct
       ((ptr T.context) @-> on_unavailable_counter @-> T.clientd @-> returning int)
 
   let on_close_client =
-    static_funptr Ctypes_static.(
+    funptr Ctypes_static.(
        T.clientd
        @-> returning void
      )
@@ -184,7 +177,7 @@ module Functions(F: Ctypes.FOREIGN) = struct
       ((ptr T.client) @-> returning bool)
 
   let stream_out =
-    static_funptr Ctypes_static.(
+    funptr Ctypes_static.(
        string
        @-> returning void
      )
@@ -222,7 +215,7 @@ module Functions(F: Ctypes.FOREIGN) = struct
       )
 
   let notification =
-    static_funptr Ctypes_static.(
+    funptr_opt Ctypes_static.(
        T.clientd (* clientd *)
        @-> returning void
      )
@@ -265,9 +258,9 @@ module Functions(F: Ctypes.FOREIGN) = struct
        @-> (ptr T.client)                       (* client                       *)
        @-> string                               (* uri                          *)
        @-> int32_t                              (* stream_id                    *)
-       @-> (ptr_opt on_available_image)          (* on_available_image_handler   *)
+       @-> on_available_image                   (* on_available_image_handler   *)
        @-> T.clientd                            (* on_available_image_clientd   *)
-       @-> (ptr_opt on_unavailable_image)       (* on_unavailable_image_handler *)
+       @-> on_unavailable_image                 (* on_unavailable_image_handler *)
        @-> T.clientd                            (* on_available_image_clientd   *)
        @-> returning int
       )
@@ -309,7 +302,7 @@ module Functions(F: Ctypes.FOREIGN) = struct
   (* NOTE: aeronc.h refers to buffer as *uint8_t, but we use *char here
      for use of conversion using Ctypes.string_from_ptr *)
   let fragment_handler =
-    static_funptr Ctypes_static.(
+    funptr Ctypes_static.(
        T.clientd            (* clientd *)
        @-> (ptr char  )     (* buffer  *)
        @-> size_t           (* length  *)
@@ -344,7 +337,7 @@ module Functions(F: Ctypes.FOREIGN) = struct
       )
 
   let reserved_value_supplier =
-    static_funptr Ctypes_static.(
+    funptr_opt Ctypes_static.(
        T.clientd             (* clientd *)
        @-> ptr uint8_t       (* buffer *)
        @-> size_t            (* frame_length *)
@@ -355,7 +348,7 @@ module Functions(F: Ctypes.FOREIGN) = struct
   let publication_offer =
     foreign "aeron_publication_offer"
       ((ptr T.publication)               (* publication             *)
-       @-> (ptr uint8_t)                 (* buffer                  *)
+       @-> string                        (* buffer                  *)
        @-> size_t                        (* length                  *)
        @-> reserved_value_supplier       (* reserved_value_supplier *)
        @-> T.clientd                     (* clientd                 *)
@@ -365,7 +358,7 @@ module Functions(F: Ctypes.FOREIGN) = struct
   let exclusive_publication_offer =
     foreign "aeron_exclusive_publication_offer"
       ((ptr T.exclusive_publication)     (* exclusive_publication   *)
-       @-> (ptr uint8_t)                 (* buffer                  *)
+       @-> string                        (* buffer                  *)
        @-> size_t                        (* length                  *)
        @-> reserved_value_supplier       (* reserved_value_supplier *)
        @-> T.clientd                     (* clientd                 *)

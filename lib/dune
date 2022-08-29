@@ -1,12 +1,15 @@
 (library
  (name aeron)
- ; (libraries core)
  ; ctypes backward compatibility shims warn sometimes; suppress them
  (flags (:standard -w -9-27))
+ (libraries ctypes.foreign)
  (ctypes
-  (external_library_name libaeron_static)
+  (external_library_name libaeroon)
   (build_flags_resolver
-    (vendored (c_flags -I /home/mika/jobs/onechronos/aeron/aeron-client/src/main/c))
+    (vendored
+     (c_flags -I /home/mika/jobs/onechronos/aeron/aeron-client/src/main/c)
+     (c_library_flags -L/home/mika/jobs/onechronos/aeron/build/lib -laeron)
+    )
   )
   (headers (include "aeronc.h"))
   (type_description
