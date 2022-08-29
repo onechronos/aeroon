@@ -114,10 +114,11 @@ let publish () =
 
   let msg = "This is a test of the emergency broadcast system. This is \
              only a test." in
-  let buffer_size = s_of_i (String.length msg) in
 
   let rec pub n i =
     if i < n then
+      let msg = Printf.sprintf "[%d] %s" i msg in
+      let buffer_size = s_of_i (String.length msg) in
       let status = publication_offer publication
           msg buffer_size None null in
       pr "status=%Ld\n%!" status;
