@@ -209,6 +209,10 @@ module Functions(F: Ctypes.FOREIGN) = struct
     foreign "aeron_main_idle_strategy"
       ((ptr T.client) @-> int @-> returning void)
 
+  let idle_strategy_busy_spinning_idle =
+    foreign "aeron_idle_strategy_busy_spinning_idle"
+      ((ptr void) @-> int @-> returning void)
+
   let close =
     foreign "aeron_close"
       ((ptr T.client) @-> returning int)
@@ -361,7 +365,7 @@ module Functions(F: Ctypes.FOREIGN) = struct
   let fragment_handler =
     funptr Ctypes_static.(
       T.clientd            (* clientd *)
-      @-> (ptr char  )     (* buffer  *)
+      @-> (ptr char)       (* buffer  *)
       @-> size_t           (* length  *)
       @-> (ptr T.header)   (* header  *)
       @-> returning void
@@ -520,12 +524,14 @@ module Functions(F: Ctypes.FOREIGN) = struct
        @-> returning int
       )
 
+  (* note that the clientd appears to be intended to be an
+     image_fragment_assembler, so using the more strict typing here *)
   let image_poll =
     foreign "aeron_image_poll"
-      ((ptr T.image)       (* image          *)
-      @-> fragment_handler (* handler        *)
-      @-> T.clientd        (* clientd        *)
-      @-> size_t           (* fragment_limit *)
+      ((ptr T.image)                        (* image          *)
+      @-> fragment_handler                  (* handler        *)
+      @-> (ptr T.image_fragment_assembler)  (* clientd        *)
+      @-> size_t                            (* fragment_limit *)
       @-> returning int
      )
 
