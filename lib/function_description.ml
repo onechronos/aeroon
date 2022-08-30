@@ -8,6 +8,30 @@ module Functions(F: Ctypes.FOREIGN) = struct
   let funptr     = Foreign.funptr     (* ~runtime_lock:true *) ~thread_registration:true
   let funptr_opt = Foreign.funptr_opt (* ~runtime_lock:true *) ~thread_registration:true
 
+  let version_full =
+    foreign "aeron_version_full"
+      (void @-> returning string)
+
+  let version_major =
+    foreign "aeron_version_major"
+      (void @-> returning int)
+
+  let version_minor =
+    foreign "aeron_version_minor"
+      (void @-> returning int)
+
+  let version_patch =
+    foreign "aeron_version_patch"
+      (void @-> returning int)
+
+  let nano_clock =
+    foreign "aeron_nano_clock"
+      (void @-> returning int64_t)
+
+  let epoch_clock =
+    foreign "aeron_epoch_clock"
+      (void @-> returning int64_t)
+
   let on_available_image =
     funptr_opt Ctypes_static.(
       T.clientd                (* clientd      *)
@@ -68,9 +92,11 @@ module Functions(F: Ctypes.FOREIGN) = struct
       @-> returning int
     )
 
+  (* declared but not defined
   let contex_set_agent_on_start =
     foreign "aeron_context_set_agent_on_start_function"
       ((ptr T.context) @-> agent_on_start @-> (ptr void) @-> returning int)
+  *)
 
   let error_handler =
     funptr Ctypes_static.(
@@ -119,7 +145,7 @@ module Functions(F: Ctypes.FOREIGN) = struct
       ((ptr T.context) @-> on_new_subscription @-> T.clientd @-> returning int)
 
   let subscription_is_connected =
-    foreign "subscription_is_connected"
+    foreign "aeron_subscription_is_connected"
       ((ptr T.subscription) @-> returning bool)
 
   let on_available_counter =
@@ -279,7 +305,7 @@ module Functions(F: Ctypes.FOREIGN) = struct
   let async_add_exclusive_publication_poll =
     foreign "aeron_async_add_exclusive_publication_poll"
       ((ptr (ptr T.exclusive_publication))
-       @-> (ptr T.exclusive_publication)
+       @-> (ptr T.async_add_exclusive_publication)
        @-> returning int
       )
 
@@ -476,7 +502,7 @@ module Functions(F: Ctypes.FOREIGN) = struct
       )
 
   let counters_reader_max_counter_id =
-    foreign "aeron_counters_max_counter_id"
+    foreign "aeron_counters_reader_max_counter_id"
       ((ptr T.counters_reader) @-> returning int32_t)
 
   let counters_reader_addr =
