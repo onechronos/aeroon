@@ -1,4 +1,3 @@
 (executables
  (names pubsub callbacks pingpong)
- (libraries aeron))
- 
+ (libraries aeroon))
