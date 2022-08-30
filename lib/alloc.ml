@@ -1,8 +1,10 @@
 open Ctypes
 open C.Type
 
-let a t =
-  allocate (ptr t) (from_voidp t null)
+open struct
+  let a t =
+    allocate (ptr t) (from_voidp t null)
+end
 
 let ptr_context () = a context
 let ptr_client () = a client
