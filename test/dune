@@ -1,1 +1,4 @@
-(executables (names pubsub callbacks) (libraries aeron))
+(executables
+ (names pubsub callbacks pingpong)
+ (libraries aeron)
+)
