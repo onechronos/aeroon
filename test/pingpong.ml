@@ -1,7 +1,6 @@
 (** round-trip benchmark over Aeron *)
 
 let ping = "aeron:udp?endpoint=localhost:20123", 1002l
-
 let pong = "aeron:udp?endpoint=localhost:20124", 1003l
 
 (*
@@ -15,7 +14,6 @@ open Aeroon.Bindings
 open C.Functions
 
 let s_to_i = Unsigned.Size_t.to_int
-
 let i_to_s = Unsigned.Size_t.of_int
 
 let create_subscription client (channel, stream_id) =

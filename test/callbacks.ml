@@ -1,5 +1,4 @@
 let channel = "aeron:udp?endpoint=localhost:20121"
-
 let stream_id = 1001l
 
 open Aeroon.Bindings
@@ -7,7 +6,6 @@ open Ctypes
 open C.Functions
 
 let pr = Printf.printf
-
 let u64_to_i = Unsigned.UInt64.to_int
 
 (* keep global refrences to callbacks to avoid their GC; this seems to

@@ -3,13 +3,9 @@ open Ctypes
 open C.Functions
 
 let channel = "aeron:udp?endpoint=localhost:20121"
-
 let stream_id = 1001l
-
 let s_of_i = Unsigned.Size_t.of_int
-
 let s_to_i = Unsigned.Size_t.to_int
-
 let pr = Printf.printf
 
 let context_and_client () =
