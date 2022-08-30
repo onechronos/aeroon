@@ -27,12 +27,12 @@ module Functions (F : Ctypes.FOREIGN) = struct
   let on_unavailable_image = on_available_image
 
   let context_get_dir =
-    foreign "aeron_context_get_dir" (ptr T.context @-> returning string)
+    foreign "aeron_context_get_dir" (ptr T.context @-> returning string_opt)
 
   (* Note: [set_dir new_dir] seems to return [None] on success *)
   let context_set_dir =
     foreign "aeron_context_set_dir"
-      (ptr T.context @-> string @-> returning string_opt)
+      (ptr T.context @-> string_opt @-> returning string_opt)
 
   (* Note: [set_driver_timeout_msg timeout] seems to return a
      meaningless error code (always 0, even for negative values) *)

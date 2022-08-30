@@ -11,6 +11,10 @@ open struct
   let ( !@ ) = Ctypes.( !@ )
 end
 
+module Codes = Codes
+(** Status codes and other enums *)
+
+(** Main context *)
 module Context = struct
   type t = [ `Context ] aptr
 
@@ -31,10 +35,10 @@ module Context = struct
     ) else
       failwith "aeron.context"
 
-  let get_dir (self : t) : string = F.context_get_dir self
+  let get_dir (self : t) : string option = F.context_get_dir self
 
   let set_dir (self : t) dir : unit =
-    ignore (F.context_set_dir self dir : _ option)
+    ignore (F.context_set_dir self (Some dir) : _ option)
 
   let get_driver_timeout_ms (self : t) : int64 =
     F.context_get_driver_timeout_ms self |> Unsigned.UInt64.to_int64
