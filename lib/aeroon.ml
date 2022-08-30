@@ -8,7 +8,6 @@ open struct
   type 'a aptr = 'a Ctypes_static.abstract Ctypes_static.ptr
 
   let is_null = Ctypes.is_null
-
   let ( !@ ) = Ctypes.( !@ )
 end
 
@@ -24,9 +23,11 @@ module Context = struct
     in
     if not (is_null ptr) then (
       let err = F.context_init ptr in
-      if err <> 0 then failwith "aeron.context";
       (* TODO: error code *)
-      !@ptr
+      if err <> 0 then failwith "aeron.context";
+      let ctx = !@ptr in
+      assert (not (is_null ctx));
+      ctx
     ) else
       failwith "aeron.context"
 
@@ -55,8 +56,6 @@ end
 (** Version of Aeron *)
 module Version = struct
   let major = F.version_major ()
-
   let minor = F.version_minor ()
-
   let patch = F.version_patch ()
 end
