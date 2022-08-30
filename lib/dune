@@ -2,18 +2,18 @@
  (name aeron)
  (public_name aeroon)
  ; ctypes backward compatibility shims warn sometimes; suppress them
- (flags (:standard -w -9-27))
+ (flags
+  (:standard -w -9-27))
  (libraries ctypes.foreign)
  (ctypes
   (external_library_name libaeroon)
   (build_flags_resolver
-    (vendored
-     ; AERON_ROOT environment variable required
-     (c_flags -I "%{env:AERON_ROOT=/path/to/aeron}/aeron-client/src/main/c")
-     (c_library_flags -L"%{env:AERON_ROOT=/path/to/aeron}/build/lib" -laeron)
-    )
-  )
-  (headers (include "aeronc.h"))
+   (vendored
+    ; AERON_ROOT environment variable required
+    (c_flags -I "%{env:AERON_ROOT=/path/to/aeron}/aeron-client/src/main/c")
+    (c_library_flags -L "%{env:AERON_ROOT=/path/to/aeron}/build/lib" -laeron)))
+  (headers
+   (include "aeronc.h"))
   (type_description
    (instance Type)
    (functor Type_description))
@@ -22,6 +22,4 @@
    (instance Functions)
    (functor Function_description))
   (generated_types Types_generated)
-  (generated_entry_point C)
- )
-)
+  (generated_entry_point C)))
