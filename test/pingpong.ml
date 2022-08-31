@@ -1,14 +1,12 @@
 (** round-trip benchmark over Aeron *)
 
-let ping = "aeron:udp?endpoint=localhost:20123", 1002l
+let ping_canal = "aeron:udp?endpoint=localhost:20123", 1002l
 
-let pong = "aeron:udp?endpoint=localhost:20124", 1003l
+let pong_canal = "aeron:udp?endpoint=localhost:20124", 1003l
 
-(*
-  let number_of_messages = 10_000_000
-  let number_of_warm_up_messages = 100_000
- *)
-let fragment_count_limit = 10
+let number_of_messages = 10_000_000
+
+(* let number_of_warm_up_messages = 100_000 *)
 
 open Ctypes
 open Aeron
@@ -17,6 +15,8 @@ open C.Functions
 let s_to_i = Unsigned.Size_t.to_int
 
 let i_to_s = Unsigned.Size_t.of_int
+
+let fragment_count_limit = i_to_s 10
 
 let create_subscription client (channel, stream_id) =
   let async =
@@ -94,6 +94,77 @@ let context_and_client () =
 
 let cache = ref []
 
+let ping =
+  let pong_measuring_handler _add_to_histogram _clientd buffer length _header =
+    let end_ns = nano_clock () in
+    let start_s = string_from_ptr buffer ~length:(s_to_i length) in
+    let start_ns = Int64.of_string start_s in
+    let duration_ns = Int64.(sub end_ns start_ns) in
+    _add_to_histogram duration_ns
+  in
+
+  let send_ping_and_recv_pong publication image fragment_handler
+      fragment_assembler_handler num_messages =
+    let rec loop n i =
+      Printf.printf "loop %d\n" i;
+      if i < n then (
+        let now_ns = nano_clock () in
+        let msg = Int64.to_string now_ns in
+        let length = i_to_s (String.length msg) in
+        let position = send msg length in
+        recv position
+      ) else
+        loop n (i + 1)
+    and send msg length =
+      print_endline "send";
+      let position =
+        exclusive_publication_offer publication msg length None null
+      in
+      if position >= 0L then
+        position
+      else
+        send msg length
+    and recv position =
+      print_endline "recv";
+      if image_position image < position then
+        poll ()
+      else
+        ()
+    and poll () =
+      print_endline "poll";
+      if
+        image_poll image fragment_handler fragment_assembler_handler
+          fragment_count_limit
+        <= 0
+      then (
+        idle_strategy_busy_spinning_idle null 0;
+        poll ()
+      ) else
+        ()
+    in
+    loop num_messages 0
+  in
+
+  fun () ->
+    let _context, client = context_and_client () in
+    let subscription = create_subscription client pong_canal in
+    let publication = create_exclusive_publication client ping_canal in
+
+    let image = subscription_image_at_index subscription (i_to_s 0) in
+
+    let pph = pong_measuring_handler (Printf.printf "duration=%Ld\n%!") in
+    cache := pph :: !cache;
+
+    let fragment_assembler =
+      let p_fragment_assembler = Alloc.ptr_image_fragment_assembler () in
+      let res = image_fragment_assembler_create p_fragment_assembler pph null in
+      assert (res = 0);
+      !@p_fragment_assembler
+    in
+
+    send_ping_and_recv_pong publication image image_fragment_assembler_handler
+      fragment_assembler number_of_messages
+
 let pong =
   let sends = ref 0 in
   let recvs = ref 0 in
@@ -126,9 +197,9 @@ let pong =
 
   fun () ->
     let _context, client = context_and_client () in
-    let subscription = create_subscription client ping in
+    let subscription = create_subscription client ping_canal in
 
-    let publication = create_exclusive_publication client pong in
+    let publication = create_exclusive_publication client pong_canal in
     let pph = ping_poll_handler publication in
     cache := pph :: !cache;
 
@@ -141,7 +212,6 @@ let pong =
       !@p_fragment_assembler
     in
 
-    let fragment_count_limit = i_to_s fragment_count_limit in
     let rec loop () =
       let fragments_read =
         image_poll image image_fragment_assembler_handler fragment_assembler
@@ -158,8 +228,6 @@ let pong =
       )
     in
     loop ()
-
-let ping () = failwith "not implemented"
 
 let _ =
   match Sys.argv.(1) with
