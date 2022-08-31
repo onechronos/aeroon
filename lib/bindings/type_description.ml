@@ -49,4 +49,7 @@ module Types (F : Ctypes.TYPE) = struct
 
   let image_fragment_assembler : [ `Image_fragment_assembler ] abstract typ =
     abstract_1 "aeron_image_fragment_assembler_t"
+
+  let client_error_driver_timeout =
+    constant "AERON_CLIENT_ERROR_DRIVER_TIMEOUT" int
 end

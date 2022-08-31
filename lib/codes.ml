@@ -2,7 +2,10 @@
 module Client = struct
   type t = int
 
-  let st_AERON_CLIENT_ERROR_DRIVER_TIMEOUT = -1000
+  (* let st_AERON_CLIENT_ERROR_DRIVER_TIMEOUT = -1000 *)
+  let st_AERON_CLIENT_ERROR_DRIVER_TIMEOUT =
+    Aeroon_bindings.Types_generated.client_error_driver_timeout
+
   let st_AERON_CLIENT_ERROR_CLIENT_TIMEOUT = -1001
   let st_AERON_CLIENT_ERROR_CONDUCTOR_SERVICE_TIMEOUT = -1002
   let st_AERON_CLIENT_ERROR_BUFFER_FULL = -1003
