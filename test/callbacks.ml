@@ -45,7 +45,9 @@ let _ =
   let err = start client in
   assert (err = 0);
 
-  pr "dir=%s\n%!" (context_get_dir ctx);
+  pr "dir=%s\n%!"
+    (Option.fold ~none:"None" ~some:(Printf.sprintf "Some %S")
+    @@ context_get_dir ctx);
 
   pr "timeout=%d\n%!" (u64_to_i (context_get_driver_timeout_ms ctx));
 
