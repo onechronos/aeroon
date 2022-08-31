@@ -80,18 +80,18 @@ module Publication = struct
     let buffer_size = Unsigned.Size_t.of_int (String.length msg) in
     let rec loop () =
       let status = F.publication_offer self msg buffer_size None null in
-      if status < 0L then (
-        let status = Int64.to_int status in
+      if status < 0L then
         if
           autoretry
-          && (status = Codes.Publication.st_BACK_PRESSURED
-             || status = Codes.Publication.st_ADMIN_ACTION)
+          && (status = Codes.Publication.back_pressured
+             || status = Codes.Publication.admin_action
+             || status = Codes.Publication.not_connected)
         then
           loop ()
         else
           failwithf "publication.offer failed (%s)"
             (Codes.Publication.to_string status)
-      ) else
+      else
         status
     in
     loop ()
@@ -165,11 +165,7 @@ module Subscription = struct
           (Unsigned.Size_t.of_int fragment_limit)
       in
       if num_fragments_read < 0 then
-        if
-          autoretry
-          && (num_fragments_read = Codes.Publication.st_BACK_PRESSURED
-             || num_fragments_read = Codes.Publication.st_ADMIN_ACTION)
-        then (
+        if autoretry then (
           F.main_idle_strategy self.client num_fragments_read;
           poll ()
         ) else
@@ -227,18 +223,14 @@ module Client = struct
     let p_async_pub = Alloc.ptr_async_add_publication () in
     if is_null p_async_pub then failwith "aeron: failed to create publication";
     let err = F.async_add_publication p_async_pub self uri stream_id in
-    if err <> 0 then
-      failwithf "aeron: cannot add publication (%s)"
-        (Codes.Publication.to_string err);
+    if err <> 0 then failwithf "aeron: cannot add publication (%d)" err;
 
     let p_pub = Alloc.ptr_publication () in
     let rec poll () =
       match F.async_add_publication_poll p_pub !@p_async_pub with
       | 1 -> !@p_pub
       | 0 -> poll ()
-      | e ->
-        failwithf "aeron: failed to poll for publication (%s)"
-          (Codes.Publication.to_string e)
+      | e -> failwithf "aeron: failed to poll for publication (%d)" e
     in
     poll ()
 
@@ -250,18 +242,14 @@ module Client = struct
       F.async_add_subscription p_async_sub self uri stream_id None null None
         null
     in
-    if err <> 0 then
-      failwithf "aeron: cannot add subscription (%s)"
-        (Codes.Publication.to_string err);
+    if err <> 0 then failwithf "aeron: cannot add subscription (%d)" err;
 
     let p_sub = Alloc.ptr_subscription () in
     let rec poll () =
       match F.async_add_subscription_poll p_sub !@p_async_sub with
       | 1 -> Subscription.create ~client:self ~ptr:!@p_sub ()
       | 0 -> poll ()
-      | e ->
-        failwithf "aeron: failed to poll for subscription (%s)"
-          (Codes.Publication.to_string e)
+      | e -> failwithf "aeron: failed to poll for subscription (%d)" e
     in
     poll ()
 
