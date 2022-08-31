@@ -17,7 +17,18 @@ let subscribe () =
   while true do
     let msg_l = Aeroon.Subscription.poll sub in
     pr "got %d fragments\n%!" (List.length msg_l);
-    List.iteri (pr "  fragment[%d]: %s\n%!") msg_l;
+
+    (* print one received fragment *)
+    let pr_fragment i msg =
+      pr "  fragment[%d]: " i;
+      if String.length msg > 1000 then
+        pr "(... %d bytes)" (String.length msg)
+      else
+        pr "%s" msg;
+      pr "\n%!"
+    in
+
+    List.iteri pr_fragment msg_l;
 
     incr n_iterations;
     if !n_iterations mod 100 = 0 then Gc.compact ()
@@ -52,6 +63,13 @@ let publish () =
       for _j = 1 to 5 do
         Aeroon.Publication.offer publication (Printf.sprintf "bulk %d" _j)
       done;
+
+      if n mod 200 = 0 then (
+        (* send a long message (larger than MTU) to check if
+           fragment reassembly works *)
+        let msg = String.make 200_000 'a' in
+        Aeroon.Publication.offer publication msg
+      );
 
       if n mod 100 = 0 then Gc.compact ();
 
