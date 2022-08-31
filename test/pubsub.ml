@@ -1,7 +1,8 @@
 open Aeroon.Bindings
 open Ctypes
-open C.Functions
+module F = C.Functions
 
+let[@inline] ( let@ ) f x = f x
 let channel = "aeron:udp?endpoint=localhost:20121"
 let stream_id = 1001l
 let s_of_i = Unsigned.Size_t.of_int
@@ -11,19 +12,19 @@ let pr = Printf.printf
 let context_and_client () =
   let ctx =
     let p_context = Alloc.ptr_context () in
-    let err = context_init p_context in
+    let err = F.context_init p_context in
     assert (err = 0);
     !@p_context
   in
 
   let client =
     let p_client = Alloc.ptr_client () in
-    let err = init p_client ctx in
+    let err = F.init p_client ctx in
     assert (err = 0);
     !@p_client
   in
 
-  let err = start client in
+  let err = F.start client in
   assert (err = 0);
   ctx, client
 
@@ -33,7 +34,7 @@ let subscribe () =
   let async =
     let p_async = Alloc.ptr_async_add_subscription () in
     let err =
-      async_add_subscription p_async client channel stream_id None null None
+      F.async_add_subscription p_async client channel stream_id None null None
         null
     in
     assert (err >= 0);
@@ -43,7 +44,7 @@ let subscribe () =
   let subscription =
     let p_subscription = Alloc.ptr_subscription () in
     let rec poll () =
-      match async_add_subscription_poll p_subscription async with
+      match F.async_add_subscription_poll p_subscription async with
       | 1 -> !@p_subscription
       | 0 -> poll ()
       | _ -> assert false
@@ -59,7 +60,7 @@ let subscribe () =
   let fragment_assembler =
     let p_fragment_assembler = Alloc.ptr_fragment_assembler () in
     let err =
-      fragment_assembler_create p_fragment_assembler fragment_handler null
+      F.fragment_assembler_create p_fragment_assembler fragment_handler null
     in
     assert (err = 0);
     !@p_fragment_assembler
@@ -67,13 +68,13 @@ let subscribe () =
 
   let rec poll () =
     let num_fragments_read =
-      subscription_poll subscription fragment_assembler_handler
+      F.subscription_poll subscription F.fragment_assembler_handler
         fragment_assembler (s_of_i 10)
     in
     if num_fragments_read < 0 then
-      pr "subscribe error: %s\n%!" (errmsg ())
+      pr "subscribe error: %s\n%!" (F.errmsg ())
     else (
-      main_idle_strategy client num_fragments_read;
+      F.main_idle_strategy client num_fragments_read;
       poll ()
     )
   in
@@ -81,30 +82,18 @@ let subscribe () =
   poll ();
 
   print_endline "close";
-  let _ = close client in
+  let _ = F.close client in
   print_endline "context_close";
-  let _ = context_close ctx in
+  let _ = F.context_close ctx in
   ()
 
 let publish () =
-  let ctx, client = context_and_client () in
-
-  let async =
-    let p_async = Alloc.ptr_async_add_publication () in
-    let err = async_add_publication p_async client channel stream_id in
-    assert (err >= 0);
-    !@p_async
-  in
+  let@ ctx = Aeroon.Context.with_ in
+  let@ client = Aeroon.Client.with_ ctx in
+  Aeroon.Client.start client;
 
   let publication =
-    let p_publication = Alloc.ptr_publication () in
-    let rec poll () =
-      match async_add_publication_poll p_publication async with
-      | 1 -> !@p_publication
-      | 0 -> poll ()
-      | _ -> assert false
-    in
-    poll ()
+    Aeroon.Client.add_publication client ~uri:channel ~stream_id
   in
 
   let msg =
@@ -115,7 +104,7 @@ let publish () =
     if i < n then (
       let msg = Printf.sprintf "[%d] %s" i msg in
       let buffer_size = s_of_i (String.length msg) in
-      let status = publication_offer publication msg buffer_size None null in
+      let status = F.publication_offer publication msg buffer_size None null in
       pr "status=%Ld\n%!" status;
       Unix.sleep 1;
       pub n (i + 1)
@@ -123,11 +112,6 @@ let publish () =
       ()
   in
   pub 100 0;
-
-  print_endline "close";
-  let _ = close client in
-  print_endline "context_close";
-  let _ = context_close ctx in
   ()
 
 let _ =

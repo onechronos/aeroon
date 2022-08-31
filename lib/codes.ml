@@ -22,28 +22,28 @@ end
 
 (** Publication status codes *)
 module Publication = struct
-  type t = int64
+  type t = int
 
   (**
    * The publication is not connected to a subscriber, this can be an intermittent state as subscribers come and go.
    *)
-  let st_NOT_CONNECTED = -1L
+  let st_NOT_CONNECTED = -1
 
   (**
    * The offer failed due to back pressure from the subscribers preventing further transmission.
    *)
-  let st_BACK_PRESSURED = -2L
+  let st_BACK_PRESSURED = -2
 
   (**
    * The offer failed due to an administration action and should be retried.
    * The action is an operation such as log rotation which is likely to have succeeded by the next retry attempt.
    *)
-  let st_ADMIN_ACTION = -3L
+  let st_ADMIN_ACTION = -3
 
   (**
    * The publication has been closed and should no longer be used.
    *)
-  let st_CLOSED = -4L
+  let st_CLOSED = -4
 
   (**
    * The offer failed due to reaching the maximum position of the stream given term buffer length times the total
@@ -52,12 +52,12 @@ module Publication = struct
    * If this happens then the publication should be closed and a new one added. To make it less likely to happen then
    * increase the term buffer length.
    *)
-  let st_MAX_POSITION_EXCEEDED = -5L
+  let st_MAX_POSITION_EXCEEDED = -5
 
   (**
    * An error has occurred. Such as a bad argument.
    *)
-  let st_ERROR = -6L
+  let st_ERROR = -6
 
   let to_string (st : t) : string =
     if st = st_ADMIN_ACTION then
