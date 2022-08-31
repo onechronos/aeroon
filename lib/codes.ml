@@ -17,7 +17,7 @@ module Client = struct
     else if self = st_AERON_CLIENT_ERROR_BUFFER_FULL then
       "status: buffer full"
     else
-      "status: unknown"
+      Printf.sprintf "status: unknown (%d)" self
 end
 
 (** Publication status codes *)
@@ -73,5 +73,5 @@ module Publication = struct
     else if st = st_ERROR then
       "status: publication error"
     else
-      "status: unknown"
+      Printf.sprintf "status: unknown (%d)" st
 end

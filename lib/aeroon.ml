@@ -69,10 +69,95 @@ end
 
 module Publication = struct
   type t = [ `Publication ] aptr
+
+  (* TODO: aeron_publication_is_closed  *)
+  (* TODO: aeron_publication_is_connected *)
+
+  (** offer publication, return the position. *)
+  let offer' (self : t) (msg : string) : int64 =
+    let buffer_size = Unsigned.Size_t.of_int (String.length msg) in
+    let status = F.publication_offer self msg buffer_size None null in
+    if status < 0L then
+      failwithf "publication.offer failed (%s)"
+        (Codes.Publication.to_string @@ Int64.to_int status);
+    status
+
+  (** Same as {!offer'} but ignore position *)
+  let offer (self : t) (msg : string) : unit = ignore (offer' self msg : int64)
+
+  let close (self : t) : unit =
+    let err = F.publication_close self None null in
+    if err <> 0 then
+      failwithf "aeron: publication close failed (%s)" (F.errmsg ())
 end
 
 module Subscription = struct
-  type t = [ `Subscription ] aptr
+  type t = {
+    ptr: [ `Subscription ] aptr;
+    client: [ `Client ] aptr;
+    fragment_handler: [ `Fragment_assembler ] aptr lazy_t;
+    mutable new_msg_l: string list;
+  }
+
+  (* TODO: also a [with_] API so we can close properly? *)
+  let create ~client ~ptr () : t =
+    let rec self = lazy { client; ptr; new_msg_l = []; fragment_handler }
+    and fragment_handler =
+      lazy
+        (let handler_for_full_fragment _null buf size _header =
+           let message =
+             Ctypes.string_from_ptr buf ~length:(Unsigned.Size_t.to_int size)
+           in
+           let (lazy self) = self in
+           self.new_msg_l <- message :: self.new_msg_l
+         in
+         let fragment_assembler =
+           let p_fragment_assembler = Alloc.ptr_fragment_assembler () in
+           let err =
+             F.fragment_assembler_create p_fragment_assembler
+               handler_for_full_fragment null
+           in
+           if err <> 0 then
+             failwithf "aeron: couldn't initialize subscription (%s)"
+               (F.errmsg ());
+           !@p_fragment_assembler
+         in
+         fragment_assembler)
+    in
+    ignore (Lazy.force fragment_handler);
+    Lazy.force self
+
+  let[@inline] is_connected (self : t) : bool =
+    F.subscription_is_connected self.ptr
+
+  let channel_status (self : t) : [ `ACTIVE | `ERRORED ] =
+    match F.subscription_channel_status self.ptr with
+    | 1L -> `ACTIVE
+    | -1L -> `ERRORED
+    | _n -> failwithf "aeron: unknown channel status %Ld" _n
+
+  (** Poll for new subscriptions *)
+  let poll ?(fragment_limit = 10) (self : t) : string list =
+    let (lazy fragment_handler) = self.fragment_handler in
+
+    let rec poll () : unit =
+      let num_fragments_read =
+        F.subscription_poll self.ptr F.fragment_assembler_handler
+          fragment_handler
+          (Unsigned.Size_t.of_int fragment_limit)
+      in
+      if num_fragments_read < 0 then
+        failwithf "aeron: subscription_poll failed (%s)" (F.errmsg ())
+      else if num_fragments_read = 0 then (
+        F.main_idle_strategy self.client num_fragments_read;
+        poll ()
+      )
+    in
+    poll ();
+    (* pop new results *)
+    let l = self.new_msg_l in
+    self.new_msg_l <- [];
+    List.rev l
 end
 
 (** Client *)
@@ -145,7 +230,7 @@ module Client = struct
     let p_sub = Alloc.ptr_subscription () in
     let rec poll () =
       match F.async_add_subscription_poll p_sub !@p_async_sub with
-      | 1 -> !@p_sub
+      | 1 -> Subscription.create ~client:self ~ptr:!@p_sub ()
       | 0 -> poll ()
       | e ->
         failwithf "aeron: failed to poll for subscription (%s)"
