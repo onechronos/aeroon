@@ -106,17 +106,15 @@ let ping =
   let send_ping_and_recv_pong publication image fragment_handler
       fragment_assembler_handler num_messages =
     let rec loop n i =
-      Printf.printf "loop %d\n" i;
       if i < n then (
         let now_ns = nano_clock () in
         let msg = Int64.to_string now_ns in
         let length = i_to_s (String.length msg) in
         let position = send msg length in
-        recv position
-      ) else
+        recv position;
         loop n (i + 1)
+      )
     and send msg length =
-      print_endline "send";
       let position =
         exclusive_publication_offer publication msg length None null
       in
@@ -125,13 +123,11 @@ let ping =
       else
         send msg length
     and recv position =
-      print_endline "recv";
       if image_position image < position then
         poll ()
       else
         ()
     and poll () =
-      print_endline "poll";
       if
         image_poll image fragment_handler fragment_assembler_handler
           fragment_count_limit
@@ -139,8 +135,7 @@ let ping =
       then (
         idle_strategy_busy_spinning_idle null 0;
         poll ()
-      ) else
-        ()
+      )
     in
     loop num_messages 0
   in
@@ -152,7 +147,12 @@ let ping =
 
     let image = subscription_image_at_index subscription (i_to_s 0) in
 
-    let pph = pong_measuring_handler (Printf.printf "duration=%Ld\n%!") in
+    let c = ref 0 in
+    let pph =
+      pong_measuring_handler (fun duration ->
+          incr c;
+          Printf.printf "[%d] duration=%Ld\n%!" !c duration)
+    in
     cache := pph :: !cache;
 
     let fragment_assembler =
