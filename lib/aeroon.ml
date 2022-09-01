@@ -78,23 +78,24 @@ module Publication = struct
      (backpressure, etc.) *)
   let offer' ?(autoretry = true) (self : t) (msg : string) : int64 =
     let buffer_size = Unsigned.Size_t.of_int (String.length msg) in
-    let rec loop () =
+    let rec loop n_retry =
       let status = F.publication_offer self msg buffer_size None null in
       if status < 0L then
         if
-          autoretry
+          autoretry && n_retry < 10
           && (status = Codes.Publication.back_pressured
              || status = Codes.Publication.admin_action
              || status = Codes.Publication.not_connected)
         then
-          loop ()
+          loop (n_retry + 1)
         else
-          failwithf "publication.offer failed (%s)"
+          failwithf "publication.offer failed (%s, n_retry=%d)"
             (Codes.Publication.to_string status)
+            n_retry
       else
         status
     in
-    loop ()
+    loop 0
 
   (** Same as {!offer'} but ignore position *)
   let offer ?autoretry (self : t) (msg : string) : unit =

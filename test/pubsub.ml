@@ -14,12 +14,14 @@ let subscribe () =
   let sub = Aeroon.Client.add_subscription client ~uri:channel ~stream_id in
 
   let n_iterations = ref 0 in
-  while true do
+  let continue = ref true in
+  while !continue do
     let msg_l = Aeroon.Subscription.poll sub in
     pr "got %d fragments\n%!" (List.length msg_l);
 
     (* print one received fragment *)
     let pr_fragment i msg =
+      if msg = "quit" then continue := false;
       pr "  fragment[%d]: " i;
       if String.length msg > 1000 then
         pr "(... %d bytes)" (String.length msg)
@@ -64,14 +66,14 @@ let publish () =
         Aeroon.Publication.offer publication (Printf.sprintf "bulk %d" _j)
       done;
 
-      if n mod 200 = 0 then (
+      if i mod 10 = 0 then (
         (* send a long message (larger than MTU) to check if
            fragment reassembly works *)
         let msg = String.make 200_000 'a' in
         Aeroon.Publication.offer publication msg
       );
 
-      if n mod 100 = 0 then Gc.compact ();
+      if i mod 100 = 0 then Gc.compact ();
 
       Unix.sleepf env_SLEEP;
       pub n (i + 1)
@@ -79,6 +81,7 @@ let publish () =
       ()
   in
   pub env_N 0;
+  Aeroon.Publication.offer publication "quit";
   ()
 
 let _ =
