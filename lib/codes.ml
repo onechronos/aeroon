@@ -1,77 +1,54 @@
+module ABT = Aeroon_bindings.Types_generated
+
 (** Client status codes *)
 module Client = struct
   type t = int
 
-  let st_AERON_CLIENT_ERROR_DRIVER_TIMEOUT = -1000
-  let st_AERON_CLIENT_ERROR_CLIENT_TIMEOUT = -1001
-  let st_AERON_CLIENT_ERROR_CONDUCTOR_SERVICE_TIMEOUT = -1002
-  let st_AERON_CLIENT_ERROR_BUFFER_FULL = -1003
+  let error_driver_timeout = ABT.client_error_driver_timeout
+  let error_client_timeout = ABT.client_error_client_timeout
 
-  let to_string (self : t) : string =
-    if self = st_AERON_CLIENT_ERROR_DRIVER_TIMEOUT then
-      "status: driver timeout"
-    else if self = st_AERON_CLIENT_ERROR_CLIENT_TIMEOUT then
-      "status: client timeout"
-    else if self = st_AERON_CLIENT_ERROR_CONDUCTOR_SERVICE_TIMEOUT then
-      "status: conductor service timeout"
-    else if self = st_AERON_CLIENT_ERROR_BUFFER_FULL then
-      "status: buffer full"
-    else
-      Printf.sprintf "status: unknown (%d)" self
+  let error_conductor_service_timeout =
+    ABT.client_error_conductor_service_timeout
+
+  let error_buffer_full = ABT.client_error_buffer_full
+
+  let code_msg_assoc =
+    [
+      error_driver_timeout, "status: driver timeout";
+      error_client_timeout, "status: client timeout";
+      error_conductor_service_timeout, "status: conductor service timeout";
+      error_buffer_full, "status: buffer full";
+    ]
+
+  let to_string code =
+    match List.assoc_opt code code_msg_assoc with
+    | Some msg -> msg
+    | None -> Printf.sprintf "status: unknown (%d)" code
 end
 
 (** Publication status codes *)
 module Publication = struct
-  type t = int
+  type t = int64
 
-  (**
-   * The publication is not connected to a subscriber, this can be an intermittent state as subscribers come and go.
-   *)
-  let st_NOT_CONNECTED = -1
+  let not_connected = ABT.publication_not_connected
+  let back_pressured = ABT.publication_back_pressured
+  let admin_action = ABT.publication_admin_action
+  let closed = ABT.publication_closed
+  let max_position_exceeded = ABT.publication_max_position_exceeded
+  let error = ABT.publication_error
 
-  (**
-   * The offer failed due to back pressure from the subscribers preventing further transmission.
-   *)
-  let st_BACK_PRESSURED = -2
+  let code_msg_assoc =
+    [
+      not_connected, "status: not connected";
+      back_pressured, "status: back pressured";
+      admin_action, "status: admin action";
+      closed, "status: closed";
+      max_position_exceeded, "status: max position exceeded";
+      error, "status: error";
+    ]
 
-  (**
-   * The offer failed due to an administration action and should be retried.
-   * The action is an operation such as log rotation which is likely to have succeeded by the next retry attempt.
-   *)
-  let st_ADMIN_ACTION = -3
-
-  (**
-   * The publication has been closed and should no longer be used.
-   *)
-  let st_CLOSED = -4
-
-  (**
-   * The offer failed due to reaching the maximum position of the stream given term buffer length times the total
-   * possible number of terms.
-   * <p>
-   * If this happens then the publication should be closed and a new one added. To make it less likely to happen then
-   * increase the term buffer length.
-   *)
-  let st_MAX_POSITION_EXCEEDED = -5
-
-  (**
-   * An error has occurred. Such as a bad argument.
-   *)
-  let st_ERROR = -6
-
-  let to_string (st : t) : string =
-    if st = st_ADMIN_ACTION then
-      "status: admin action"
-    else if st = st_BACK_PRESSURED then
-      "status: back pressured"
-    else if st = st_MAX_POSITION_EXCEEDED then
-      "status: max position exceeded"
-    else if st = st_NOT_CONNECTED then
-      "status: not connected"
-    else if st = st_CLOSED then
-      "status: publication closed"
-    else if st = st_ERROR then
-      "status: publication error"
-    else
-      Printf.sprintf "status: unknown (%d)" st
+  let to_string code =
+    match List.assoc_opt code code_msg_assoc with
+    | Some msg -> msg
+    | None -> Printf.sprintf "status: unknown (%Ld)" code
 end

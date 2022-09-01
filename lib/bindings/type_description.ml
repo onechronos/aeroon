@@ -49,4 +49,34 @@ module Types (F : Ctypes.TYPE) = struct
 
   let image_fragment_assembler : [ `Image_fragment_assembler ] abstract typ =
     abstract_1 "aeron_image_fragment_assembler_t"
+
+  let client_error_driver_timeout =
+    constant "AERON_CLIENT_ERROR_DRIVER_TIMEOUT" int
+
+  let client_error_client_timeout =
+    constant "AERON_CLIENT_ERROR_CLIENT_TIMEOUT" int
+
+  let client_error_conductor_service_timeout =
+    constant "AERON_CLIENT_ERROR_CONDUCTOR_SERVICE_TIMEOUT" int
+
+  let client_error_buffer_full = constant "AERON_CLIENT_ERROR_BUFFER_FULL" int
+
+  let client_max_local_address_str_len =
+    constant "AERON_CLIENT_MAX_LOCAL_ADDRESS_STR_LEN" int
+
+  let publication_not_connected =
+    constant "AERON_PUBLICATION_NOT_CONNECTED" int64_t
+
+  let publication_back_pressured =
+    constant "AERON_PUBLICATION_BACK_PRESSURED" int64_t
+
+  let publication_admin_action =
+    constant "AERON_PUBLICATION_ADMIN_ACTION" int64_t
+
+  let publication_closed = constant "AERON_PUBLICATION_CLOSED" int64_t
+
+  let publication_max_position_exceeded =
+    constant "AERON_PUBLICATION_MAX_POSITION_EXCEEDED" int64_t
+
+  let publication_error = constant "AERON_PUBLICATION_ERROR" int64_t
 end
