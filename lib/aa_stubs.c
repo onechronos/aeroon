@@ -126,6 +126,7 @@ CAMLprim value aa_client_init(value x0)
     CAMLreturn(res);
   }
   else if ( err < 0 ) {
+    fprintf(stderr, "aeron init failed: %s\n", aeron_errmsg());
     caml_failwith("aa.client_init");
   }
   else {
@@ -146,7 +147,8 @@ CAMLprim value aa_client_start(value x0)
     res = Val_unit;
     CAMLreturn(res);
   }
-  else if ( err == -1 ) {
+  else if ( err < 0 ) {
+    fprintf(stderr, "aeron start failed: %s\n", aeron_errmsg());
     caml_failwith("aa.client_start");
   }
   else {

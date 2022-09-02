@@ -8,10 +8,10 @@ let () =
   Printf.printf "version: %d.%d.%d %s\n%!" major minor patch full;
 
   let _ctx = context_init () in
-  (*
   let _client = client_init _ctx in
   client_start _client;
-  *)
+  print_endline "started!";
   Gc.compact ();
+  client_del _client;
   context_del _ctx;
   print_endline "post compact"
