@@ -12,10 +12,10 @@ type client
 
 external context_init : unit -> context = "aa_context_init"
 
-external context_del : context -> unit = "aa_context_finalize"
+external context_close : context -> unit = "aa_context_close"
 
-external client_init : context -> client = "aa_client_init"
+external init : context -> client = "aa_init"
 
-external client_del : client -> unit = "aa_client_finalize"
+external close : client -> unit = "aa_close"
 
-external client_start : client -> unit = "aa_client_start"
+external start : client -> unit = "aa_start"

@@ -56,7 +56,7 @@ CAMLprim value aa_version_full(value x0)
 #define context_val(v) (*((aeron_context_t **) Data_custom_val(v)))
 #define client_val(v) (*((aeron_t **) Data_custom_val(v)))
 
-void aa_context_finalize(value x0)
+void aa_context_close(value x0)
 {
   CAMLparam1(x0);
   aeron_context_t* y0 = context_val(x0);
@@ -73,7 +73,7 @@ void aa_context_finalize(value x0)
 }
 
 
-void aa_client_finalize(value x0)
+void aa_close(value x0)
 {
   CAMLparam1(x0);
   aeron_t* y0 = client_val(x0);
@@ -82,12 +82,13 @@ void aa_client_finalize(value x0)
     return;
   }
   else if ( y1 == -1 ) {
-    caml_failwith("aa.client_close");
+    caml_failwith("aa.close");
   }
   else {
     assert(false);
   }
 }
+
 
 CAMLprim value aa_context_init(value x0)
 {
@@ -111,7 +112,7 @@ CAMLprim value aa_context_init(value x0)
   }
 }
 
-CAMLprim value aa_client_init(value x0)
+CAMLprim value aa_init(value x0)
 {
   CAMLparam1(x0);
   CAMLlocal1(res);
@@ -126,16 +127,14 @@ CAMLprim value aa_client_init(value x0)
     CAMLreturn(res);
   }
   else if ( err < 0 ) {
-    fprintf(stderr, "aeron init failed: %s\n", aeron_errmsg());
-    caml_failwith("aa.client_init");
+    caml_failwith("aa.init");
   }
   else {
     assert(false);
   }
 }
 
-
-CAMLprim value aa_client_start(value x0)
+CAMLprim value aa_start(value x0)
 {
   CAMLparam1(x0);
   CAMLlocal1(res);
@@ -148,8 +147,7 @@ CAMLprim value aa_client_start(value x0)
     CAMLreturn(res);
   }
   else if ( err < 0 ) {
-    fprintf(stderr, "aeron start failed: %s\n", aeron_errmsg());
-    caml_failwith("aa.client_start");
+    caml_failwith("aa.start");
   }
   else {
     assert(false);

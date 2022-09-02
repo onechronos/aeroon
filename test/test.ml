@@ -7,11 +7,11 @@ let () =
   let full = version_full () in
   Printf.printf "version: %d.%d.%d %s\n%!" major minor patch full;
 
-  let _ctx = context_init () in
-  let _client = client_init _ctx in
-  client_start _client;
+  let ctx = context_init () in
+  let client = init ctx in
+  start client;
   print_endline "started!";
   Gc.compact ();
-  client_del _client;
-  context_del _ctx;
-  print_endline "post compact"
+  print_endline "post compact";
+  close client;
+  context_close ctx
