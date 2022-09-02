@@ -53,10 +53,13 @@ CAMLprim value aa_version_full(value x0)
   CAMLreturn(x1);
 }
 
+#define context_val(v) (*((aeron_context_t **) Data_custom_val(v)))
+#define client_val(v) (*((aeron_t **) Data_custom_val(v)))
+
 void aa_context_finalize(value x0)
 {
   CAMLparam1(x0);
-  aeron_context_t* y0 = (aeron_context_t*)Data_custom_val(x0);
+  aeron_context_t* y0 = context_val(x0);
   int y1 = aeron_context_close(y0);
   if ( y1 == 0 ) {
     return;
@@ -69,33 +72,82 @@ void aa_context_finalize(value x0)
   }
 }
 
-static struct custom_operations aa_context_ops =
-  {
-   .identifier = "aa.context",             
-   .finalize = aa_context_finalize,
-   .compare = custom_compare_default,
-   .hash = custom_hash_default,
-   .serialize = custom_serialize_default,
-   .deserialize = custom_deserialize_default,
-  };
 
-#define context_val(v) (*((aeron_context_t **) Data_custom_val(v)))
+void aa_client_finalize(value x0)
+{
+  CAMLparam1(x0);
+  aeron_t* y0 = client_val(x0);
+  int y1 = aeron_close(y0);
+  if ( y1 == 0 ) {
+    return;
+  }
+  else if ( y1 == -1 ) {
+    caml_failwith("aa.client_close");
+  }
+  else {
+    assert(false);
+  }
+}
 
 CAMLprim value aa_context_init(value x0)
 {
   CAMLparam1(x0);
-  CAMLlocal1(x1);
+  CAMLlocal1(res);
 
   aeron_context_t* y0 = NULL;
   int y1 = aeron_context_init(&y0);
 
   if ( y1 == 0 ) {
-    x1 = caml_alloc_custom( &aa_context_ops, sizeof(aeron_context_t*), 0, 1 );
-    context_val(x1) = y0;
-    CAMLreturn(x1);
+    res = caml_alloc_small( sizeof(aeron_context_t*), Abstract_tag);
+    assert(y0 != NULL);
+    context_val(res) = y0;
+    CAMLreturn(res);
   }
-  else if ( y1 == -1 ) {
+  else if ( y1 < 0 ) {
     caml_failwith("aa.context_init");
+  }
+  else {
+    assert(false);
+  }
+}
+
+CAMLprim value aa_client_init(value x0)
+{
+  CAMLparam1(x0);
+  CAMLlocal1(res);
+
+  aeron_context_t* ctx = context_val(x0);
+  aeron_t *client = NULL;
+  int err = aeron_init(&client, ctx);
+
+  if ( err == 0 ) {
+    res = caml_alloc_small( sizeof(aeron_t*), Abstract_tag);
+    client_val(res) = client;
+    CAMLreturn(res);
+  }
+  else if ( err < 0 ) {
+    caml_failwith("aa.client_init");
+  }
+  else {
+    assert(false);
+  }
+}
+
+
+CAMLprim value aa_client_start(value x0)
+{
+  CAMLparam1(x0);
+  CAMLlocal1(res);
+
+  aeron_t *client = client_val(x0);
+  int err = aeron_start(client);
+
+  if ( err == 0 ) {
+    res = Val_unit;
+    CAMLreturn(res);
+  }
+  else if ( err == -1 ) {
+    caml_failwith("aa.client_start");
   }
   else {
     assert(false);
