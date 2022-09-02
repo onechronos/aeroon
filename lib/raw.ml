@@ -19,3 +19,7 @@ external init : context -> client = "aa_init"
 external close : client -> unit = "aa_close"
 
 external start : client -> unit = "aa_start"
+
+external main_do_work : client -> int = "aa_main_do_work"
+
+external main_idle_strategy : client -> int -> unit = "aa_main_idle_strategy"

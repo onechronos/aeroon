@@ -11,7 +11,15 @@ let () =
   let client = init ctx in
   start client;
   print_endline "started!";
+  Gc.finalise
+    (fun c ->
+      print_endline "finalizing context";
+      context_close c)
+    ctx;
+  Gc.finalise
+    (fun c ->
+      print_endline "finalizing client";
+      close c)
+    client;
   Gc.compact ();
-  print_endline "post compact";
-  close client;
-  context_close ctx
+  print_endline "post compact"

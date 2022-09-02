@@ -56,15 +56,15 @@ CAMLprim value aa_version_full(value x0)
 #define context_val(v) (*((aeron_context_t **) Data_custom_val(v)))
 #define client_val(v) (*((aeron_t **) Data_custom_val(v)))
 
-void aa_context_close(value x0)
+void aa_context_close(value o_context)
 {
-  CAMLparam1(x0);
-  aeron_context_t* y0 = context_val(x0);
-  int y1 = aeron_context_close(y0);
-  if ( y1 == 0 ) {
+  CAMLparam1(o_context);
+  aeron_context_t* context = context_val(o_context);
+  int err = aeron_context_close(context);
+  if ( err == 0 ) {
     return;
   }
-  else if ( y1 == -1 ) {
+  else if ( err == -1 ) {
     caml_failwith("aa.context_close");
   }
   else {
@@ -72,23 +72,21 @@ void aa_context_close(value x0)
   }
 }
 
-
-void aa_close(value x0)
+void aa_close(value o_client)
 {
-  CAMLparam1(x0);
-  aeron_t* y0 = client_val(x0);
-  int y1 = aeron_close(y0);
-  if ( y1 == 0 ) {
+  CAMLparam1(o_client);
+  aeron_t* client = client_val(o_client);
+  int err = aeron_close(client);
+  if ( err == 0 ) {
     return;
   }
-  else if ( y1 == -1 ) {
+  else if ( err == -1 ) {
     caml_failwith("aa.close");
   }
   else {
     assert(false);
   }
 }
-
 
 CAMLprim value aa_context_init(value x0)
 {
@@ -134,17 +132,15 @@ CAMLprim value aa_init(value x0)
   }
 }
 
-CAMLprim value aa_start(value x0)
+CAMLprim value aa_start(value o_client)
 {
-  CAMLparam1(x0);
-  CAMLlocal1(res);
+  CAMLparam1(o_client);
 
-  aeron_t *client = client_val(x0);
+  aeron_t* client = client_val(o_client);
   int err = aeron_start(client);
 
   if ( err == 0 ) {
-    res = Val_unit;
-    CAMLreturn(res);
+    CAMLreturn(Val_unit);
   }
   else if ( err < 0 ) {
     caml_failwith("aa.start");
@@ -152,4 +148,23 @@ CAMLprim value aa_start(value x0)
   else {
     assert(false);
   }
+}
+
+CAMLprim value aa_main_do_work(value o_client)
+{
+  CAMLparam1(o_client);
+  aeron_t* client = client_val( o_client );
+  int err = aeron_main_do_work( client );
+  CAMLreturn(Val_int(err));
+}
+
+CAMLprim value aa_main_idle_strategy(value o_client, value o_work_count)
+{
+  CAMLparam2(o_client, o_work_count);
+
+  aeron_t* client = client_val( o_client );
+  int work_count = Int_val( o_work_count );
+
+  aeron_main_idle_strategy( client, work_count );
+  CAMLreturn(Val_unit);
 }
