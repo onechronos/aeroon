@@ -12,14 +12,37 @@ let () =
   start client;
   print_endline "started!";
 
-  let channel = "aeron:udp?endpoint=localhost:20121" in
+  let uri = "aeron:udp?endpoint=localhost:20121" in
   let stream_id = 1001 in
-  let async = async_add_publication client channel stream_id in
+
+  let async = async_add_publication client uri stream_id in
 
   (match async_add_publication_poll async with
   | Ok _pub -> print_endline "got publication"
   | TryAgain -> print_endline "try again"
   | Error -> print_endline "error");
+
+  let async = async_add_exclusive_publication client uri stream_id in
+
+  (match async_add_exclusive_publication_poll async with
+  | Ok _pub -> print_endline "got exclusive_publication"
+  | TryAgain -> print_endline "try again"
+  | Error -> print_endline "error");
+
+  let on_available_image _sub _image = print_endline "on_available_image" in
+  Callback.register "oai" on_available_image;
+
+  let on_unavailable_image _sub _image = print_endline "on_unavailable_image" in
+  Callback.register "ouai" on_unavailable_image;
+
+  (match
+     async_add_subscription client uri stream_id (Some on_available_image)
+       (Some on_unavailable_image)
+   with
+  | Some _async -> print_endline "got sub async"
+  | None -> print_endline "failed to get sub async");
+
+  Unix.sleep 2;
 
   Gc.finalise
     (fun c ->
