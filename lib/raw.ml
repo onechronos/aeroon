@@ -101,6 +101,14 @@ external exclusive_publication_offer :
   exclusive_publication -> string -> (int, publication_error) result
   = "aa_exclusive_publication_offer"
 
+type notification = unit -> unit
+
+external publication_close : publication -> notification option -> bool
+  = "aa_publication_close"
+
+external publication_is_closed : publication -> bool
+  = "aa_publication_is_closed"
+
 type fragment_handler = string (* TODO: -> header *) -> unit
 
 type fragment_assembler

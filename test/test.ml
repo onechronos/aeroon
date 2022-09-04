@@ -35,6 +35,8 @@ let () =
     in
     poll ()
   in
+  let publication_closed () = print_endline "publication closed" in
+  Callback.register "pc" publication_closed;
 
   let exclusive_publication =
     let async = async_add_exclusive_publication client uri stream_id in
@@ -116,15 +118,34 @@ let () =
   in
   poll ();
 
+  let is_client_closed = ref false in
+  let is_context_closed = ref false in
+
+  Gc.finalise
+    (fun pub ->
+      if !is_client_closed || !is_context_closed then
+        print_endline "client or context already closed"
+      else if publication_is_closed pub then
+        print_endline "publication already closed"
+      else
+        Printf.printf "publication close %s\n"
+          (match publication_close pub (Some publication_closed) with
+          | true -> "success"
+          | false -> "failure"))
+    publication;
+
   Gc.finalise
     (fun c ->
       print_endline "finalizing context";
-      context_close c)
+      context_close c;
+      is_context_closed := true)
     ctx;
+
   Gc.finalise
     (fun c ->
       print_endline "finalizing client";
-      close c)
+      close c;
+      is_client_closed := true)
     client;
 
   Gc.compact ();
