@@ -33,10 +33,12 @@ external async_add_publication :
 
 type publication
 
-type async_add_publication_poll_result =
-  | Ok of publication
+type 'a poll_result =
+  | Ok of 'a
   | TryAgain
   | Error
+
+type async_add_publication_poll_result = publication poll_result
 
 external async_add_publication_poll :
   async_add_publication -> async_add_publication_poll_result
@@ -51,9 +53,7 @@ external async_add_exclusive_publication :
 type exclusive_publication
 
 type async_add_exclusive_publication_poll_result =
-  | Ok of exclusive_publication
-  | TryAgain
-  | Error
+  exclusive_publication poll_result
 
 external async_add_exclusive_publication_poll :
   async_add_exclusive_publication -> async_add_exclusive_publication_poll_result
@@ -74,3 +74,9 @@ external async_add_subscription :
   on_image option ->
   on_image option ->
   async_add_subscription option = "aa_async_add_subscription"
+
+type async_add_subscription_poll_result = subscription poll_result
+
+external async_add_subscription_poll :
+  async_add_subscription -> async_add_subscription_poll_result
+  = "aa_async_add_subscription_poll"
