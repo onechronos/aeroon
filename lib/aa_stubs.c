@@ -388,3 +388,99 @@ CAMLprim value aa_async_add_subscription_poll(value o_async)
   }
   CAMLreturn(o_res);
 }
+
+// here, we do not expose aeron_reserved_value_supplier (and its data)
+CAMLprim value aa_publication_offer(value o_publication, value o_buffer)
+{
+  CAMLparam2(o_publication, o_buffer);
+  CAMLlocal1(o_res);
+  aeron_publication_t* publication = publication_val(o_publication);
+  const char* buffer = String_val(o_buffer);
+  size_t length = caml_string_length(o_buffer);
+
+  // note cast of result, and non-use of aeron_reserved_value_supplier
+  int res = (int)aeron_publication_offer( publication, buffer, length, NULL, NULL );
+
+  if ( res >= 0 ) {
+    // Ok position
+    o_res = caml_alloc(1, 0);
+    Store_field( o_res, 0, Int_val(res) );
+  }
+  else {
+    // Error code
+    o_res = caml_alloc(1, 0);
+    int variant_code = -1;
+    if ( res == AERON_PUBLICATION_NOT_CONNECTED ) {
+      variant_code = 0;
+    }
+    else if ( res == AERON_PUBLICATION_BACK_PRESSURED ) {
+      variant_code = 1;
+    }
+    else if ( res == AERON_PUBLICATION_ADMIN_ACTION ) {
+      variant_code = 2;
+    }
+    else if ( res == AERON_PUBLICATION_CLOSED ) {
+      variant_code = 3;
+    }
+    else if ( res == AERON_PUBLICATION_MAX_POSITION_EXCEEDED ) {
+      variant_code = 4;
+    }
+    else if ( res == AERON_PUBLICATION_ERROR ) {
+      variant_code = 5;
+    }
+    else {
+      assert(false);
+    }
+    Store_field( o_res, 1, Val_int(variant_code) );
+  }
+  CAMLreturn(o_res);
+}
+
+// identical to aa_publication_offer, except that we use
+// aeron_exclusive_publcation_offer instead of aeron_publication_offer
+// essentially: 's/pulication/exclusive_publication/g'
+CAMLprim value aa_exclusive_publication_offer(value o_exclusive_publication, value o_buffer)
+{
+  CAMLparam2(o_exclusive_publication, o_buffer);
+  CAMLlocal1(o_res);
+  aeron_exclusive_publication_t* exclusive_publication = exclusive_publication_val(o_exclusive_publication);
+  const char* buffer = String_val(o_buffer);
+  size_t length = caml_string_length(o_buffer);
+
+  // note cast of result, and non-use of aeron_reserved_value_supplier
+  int res = (int)aeron_exclusive_publication_offer( exclusive_publication, buffer, length, NULL, NULL );
+
+  if ( res >= 0 ) {
+    // Ok position
+    o_res = caml_alloc(1, 0);
+    Store_field( o_res, 0, Int_val(res) );
+  }
+  else {
+    // Error code
+    o_res = caml_alloc(1, 0);
+    int variant_code = -1;
+    if ( res == AERON_PUBLICATION_NOT_CONNECTED ) {
+      variant_code = 0;
+    }
+    else if ( res == AERON_PUBLICATION_BACK_PRESSURED ) {
+      variant_code = 1;
+    }
+    else if ( res == AERON_PUBLICATION_ADMIN_ACTION ) {
+      variant_code = 2;
+    }
+    else if ( res == AERON_PUBLICATION_CLOSED ) {
+      variant_code = 3;
+    }
+    else if ( res == AERON_PUBLICATION_MAX_POSITION_EXCEEDED ) {
+      variant_code = 4;
+    }
+    else if ( res == AERON_PUBLICATION_ERROR ) {
+      variant_code = 5;
+    }
+    else {
+      assert(false);
+    }
+    Store_field( o_res, 1, Val_int(variant_code) );
+  }
+  CAMLreturn(o_res);
+}

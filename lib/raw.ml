@@ -80,3 +80,19 @@ type async_add_subscription_poll_result = subscription poll_result
 external async_add_subscription_poll :
   async_add_subscription -> async_add_subscription_poll_result
   = "aa_async_add_subscription_poll"
+
+type publication_error =
+  | Not_connected
+  | Back_pressured
+  | Admin_action
+  | Closed
+  | Max_position_exceeded
+  | Error
+
+external publication_offer :
+  publication -> string -> (int, publication_error) result
+  = "aa_publication_offer"
+
+external exclusive_publication_offer :
+  exclusive_publication -> string -> (int, publication_error) result
+  = "aa_exclusive_publication_offer"
