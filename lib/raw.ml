@@ -6,6 +6,10 @@ external version_patch : unit -> int = "aa_version_patch"
 
 external version_full : unit -> string = "aa_version_full"
 
+external errmsg : unit -> string = "aa_errmsg"
+
+external errcode : unit -> int = "aa_errcode"
+
 type context
 
 type client
@@ -96,3 +100,16 @@ external publication_offer :
 external exclusive_publication_offer :
   exclusive_publication -> string -> (int, publication_error) result
   = "aa_exclusive_publication_offer"
+
+type fragment_handler = string (* TODO: -> header *) -> unit
+
+type fragment_assembler
+
+external fragment_assembler_create :
+  fragment_handler -> fragment_assembler option = "aa_fargment_assembler_create"
+
+external subscription_poll :
+  subscription ->
+  (* TODO: -> fragment_assembler_handler *) fragment_assembler ->
+  int ->
+  int option = "aa_subscription_poll"

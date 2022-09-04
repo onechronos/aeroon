@@ -26,41 +26,56 @@
 #define async_add_subscription_val(v)          (*((aeron_async_add_subscription_t          **) Data_custom_val(v)))
 #define subscription_val(v)                    (*((aeron_subscription_t                    **) Data_custom_val(v)))
 #define image_val(v)                           (*((aeron_image_t                           **) Data_custom_val(v)))
+#define fragment_assembler_val(v)              (*((aeron_fragment_assembler_t              **) Data_custom_val(v)))
 
-CAMLprim value aa_version_major(value x0)
+CAMLprim value aa_version_major(value _unit)
 {
-  CAMLparam1(x0);
-  CAMLlocal1(x1);
-  int y0 = aeron_version_major();
-  x1 = Val_int(y0);
-  CAMLreturn(x1);
+  CAMLparam1(_unit);
+  CAMLlocal1(o_res);
+  int version_major = aeron_version_major();
+  o_res = Val_int(version_major);
+  CAMLreturn(o_res);
 }
 
-CAMLprim value aa_version_minor(value x0)
+CAMLprim value aa_version_minor(value _unit)
 {
-  CAMLparam1(x0);
-  CAMLlocal1(x1);
-  int y0 = aeron_version_minor();
-  x1 = Val_int(y0);
-  CAMLreturn(x1);
+  CAMLparam1(_unit);
+  CAMLlocal1(o_res);
+  int version_minor = aeron_version_minor();
+  o_res = Val_int(version_minor);
+  CAMLreturn(o_res);
 }
 
-CAMLprim value aa_version_patch(value x0)
+CAMLprim value aa_version_patch(value _unit)
 {
-  CAMLparam1(x0);
-  CAMLlocal1(x1);
-  int y0 = aeron_version_patch();
-  x1 = Val_int(y0);
-  CAMLreturn(x1);
+  CAMLparam1(_unit);
+  CAMLlocal1(o_res);
+  int version_patch = aeron_version_patch();
+  o_res = Val_int(version_patch);
+  CAMLreturn(o_res);
 }
 
-CAMLprim value aa_version_full(value x0)
+CAMLprim value aa_version_full(value _unit)
 {
-  CAMLparam1(x0);
-  CAMLlocal1(x1);
-  const char *y0 = aeron_version_full();
-  x1 = caml_alloc_initialized_string( strlen(y0), y0 );
-  CAMLreturn(x1);
+  CAMLparam1(_unit);
+  CAMLlocal1(o_res);
+  const char *version_full = aeron_version_full();
+  o_res = caml_copy_string( version_full );
+  CAMLreturn(o_res);
+}
+
+CAMLprim value aa_errmsg(value _unit)
+{
+  CAMLparam1(_unit);
+  CAMLlocal1(o_res);
+  o_res = caml_copy_string( aeron_errmsg() );
+  CAMLreturn(o_res);
+}
+
+CAMLprim value aa_errcode(value _unit)
+{
+  CAMLparam1(_unit);
+  CAMLreturn(Int_val( aeron_errcode() ) );
 }
 
 void aa_context_close(value o_context)
@@ -481,6 +496,74 @@ CAMLprim value aa_exclusive_publication_offer(value o_exclusive_publication, val
       assert(false);
     }
     Store_field( o_res, 1, Val_int(variant_code) );
+  }
+  CAMLreturn(o_res);
+}
+
+/*
+CAMLprim value aa_publication_close(value o_publication, value o_on_close_complete)
+{
+  CAMLparam2(o_publication, o_on_close_complete);
+}
+*/
+
+void aa_fragment_handler(void* clientd,
+			 const uint8_t* buffer,
+			 size_t length,
+			 aeron_header_t* _header) // ignore header for now
+{
+  value o_buffer = caml_alloc_initialized_string(length, buffer);
+  value o_function = (value)clientd;
+  caml_callback( o_function, o_buffer );
+}
+
+CAMLprim value aa_fargment_assembler_create( value o_delegate )
+{
+  CAMLparam1( o_delegate );
+  CAMLlocal2( o_fragment_assembler, o_res );
+  aeron_fragment_assembler_t* fragment_assembler = NULL;
+  void* clientd = (void*)o_delegate;
+  int res = aeron_fragment_assembler_create( &fragment_assembler,
+					     aa_fragment_handler,
+					     clientd );
+  if ( res == 0 ) {
+    // Some fragment_assembler
+    o_fragment_assembler = caml_alloc_small( sizeof(aeron_fragment_assembler_t*), Abstract_tag);
+    fragment_assembler_val(o_fragment_assembler) = fragment_assembler;
+    o_res = caml_alloc_some( o_fragment_assembler );
+  }
+  else if ( res == -1 ) {
+    // None
+    o_res = Val_none;
+  }
+  else {
+    assert(false);
+  }
+  CAMLreturn(o_res);
+}
+
+CAMLprim value aa_subscription_poll( value o_subscription,
+				     // TODO: o_fragment_assembler_handler
+				     value o_fragment_assembler,
+				     value o_fragment_limit )
+{
+  CAMLparam3(o_subscription, o_fragment_assembler, o_fragment_limit );
+  CAMLlocal1(o_res);
+  aeron_subscription_t* subscription = subscription_val(o_subscription);
+  aeron_fragment_assembler_t* fragment_assembler = fragment_assembler_val(o_fragment_assembler);
+  size_t fragment_limit = Int_val(o_fragment_limit);
+  int res = aeron_subscription_poll( subscription,
+				     aeron_fragment_assembler_handler,
+				     fragment_assembler,
+				     fragment_limit );
+  if ( res >= 0 ) {
+    // Some num_fragments_received
+    o_res = caml_alloc_some( Val_int(res) );
+  }
+  else { /* Note: documentation says that (-1) is the only other
+	    possible result, but sample clients indicate otherwise */
+    // None
+    o_res = Val_none;
   }
   CAMLreturn(o_res);
 }

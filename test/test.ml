@@ -95,6 +95,27 @@ let () =
     Printf.printf "exclusive publication offer error=%s\n"
       (string_of_publication_error code));
 
+  let fragment_handler msg = print_endline ("fragment handler: " ^ msg) in
+  Callback.register "fh" fragment_handler;
+  let fragment_assembler =
+    match fragment_assembler_create fragment_handler with
+    | Some fragment_assembler -> fragment_assembler
+    | None -> failwith "failed to create fragment assembler"
+  in
+  let rec poll () =
+    match subscription_poll subscription fragment_assembler 10 with
+    | Some num_frags_read when num_frags_read = 0 -> poll ()
+    | Some num_frags_read ->
+      Printf.printf "num fragments read: %d\n" num_frags_read
+    | None ->
+      let err_msg =
+        Printf.sprintf "subscription_poll error: [%d]%s" (errcode ())
+          (errmsg ())
+      in
+      failwith err_msg
+  in
+  poll ();
+
   Gc.finalise
     (fun c ->
       print_endline "finalizing context";
