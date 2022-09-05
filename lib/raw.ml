@@ -137,7 +137,7 @@ external idle_strategy_yielding_idle : int -> int -> unit
 external idle_strategy_busy_spinning_idle : int -> int -> unit
   = "aa_idle_strategy_busy_spinning_idle"
 
-external idle_strategy_noop_noop_idle : int -> int -> unit
+external idle_strategy_noop_idle : int -> int -> unit
   = "aa_idle_strategy_noop_idle"
 
 external idle_strategy_backoff_idle : int -> int -> unit
