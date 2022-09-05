@@ -10,6 +10,10 @@ external errmsg : unit -> string = "aa_errmsg"
 
 external errcode : unit -> int = "aa_errcode"
 
+external nano_clock : unit -> int = "aa_nano_clock"
+
+external epoch_clock : unit -> int = "aa_epoch_clock"
+
 type context
 
 type client
@@ -116,6 +120,12 @@ type fragment_assembler
 external fragment_assembler_create :
   fragment_handler -> fragment_assembler option = "aa_fargment_assembler_create"
 
+type image_fragment_assembler
+
+external image_fragment_assembler_create :
+  fragment_handler -> image_fragment_assembler option
+  = "aa_image_fargment_assembler_create"
+
 external subscription_poll :
   subscription ->
   (* TODO: -> fragment_assembler_handler *) fragment_assembler ->
@@ -124,9 +134,11 @@ external subscription_poll :
 
 external image_poll :
   image ->
-  (* TODO: -> fragment_assembler_handler *) fragment_assembler ->
+  (* TODO: -> image_fragment_assembler_handler *) image_fragment_assembler ->
   int ->
   int option = "aa_image_poll"
+
+external image_position : image -> int = "aa_image_position"
 
 external idle_strategy_sleeping_idle : int -> int -> unit
   = "aa_idle_strategy_sleeping_idle"
@@ -145,3 +157,6 @@ external idle_strategy_backoff_idle : int -> int -> unit
 
 external subscription_image_at_index : subscription -> int -> image option
   = "aa_subscription_image_at_index"
+
+external subscription_is_connected : subscription -> bool
+  = "aa_subscription_is_connected"

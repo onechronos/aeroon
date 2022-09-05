@@ -1,142 +1,117 @@
 (** round-trip benchmark over Aeron *)
 
-let ping_canal = "aeron:udp?endpoint=localhost:20123", 1002l
+let ping_canal = "aeron:udp?endpoint=localhost:20123", 1002
 
-let pong_canal = "aeron:udp?endpoint=localhost:20124", 1003l
+let pong_canal = "aeron:udp?endpoint=localhost:20124", 1003
 
 let number_of_messages = 10_000_000
 
 (* let number_of_warm_up_messages = 100_000 *)
 
-open Ctypes
-open Aeron
-open C.Functions
+open Aeron.Raw
 
-let s_to_i = Unsigned.Size_t.to_int
-
-let i_to_s = Unsigned.Size_t.of_int
-
-let fragment_count_limit = i_to_s 10
-
-let create_subscription client (channel, stream_id) =
-  let async =
-    let p_async = Alloc.ptr_async_add_subscription () in
-    let err =
-      async_add_subscription p_async client channel stream_id None null None
-        null
-    in
-    assert (err >= 0);
-    !@p_async
-  in
-
-  let subscription =
-    let p_subscription = Alloc.ptr_subscription () in
-    let rec poll () =
-      match async_add_subscription_poll p_subscription async with
-      | 1 -> !@p_subscription
-      | 0 -> poll ()
-      | _ -> assert false
-    in
-    poll ()
-  in
-
-  let rec wait_until_connected () =
-    if not (subscription_is_connected subscription) then
-      wait_until_connected ()
-    else
-      ()
-  in
-  wait_until_connected ();
-  subscription
-
-let create_exclusive_publication client (channel, stream_id) =
-  let async =
-    let p_async = Alloc.ptr_async_add_exclusive_publication () in
-    let err =
-      async_add_exclusive_publication p_async client channel stream_id
-    in
-    assert (err >= 0);
-    !@p_async
-  in
-
-  let exclusive_publication =
-    let p_exclusive_publication = Alloc.ptr_exclusive_publication () in
-    let rec poll () =
-      match
-        async_add_exclusive_publication_poll p_exclusive_publication async
-      with
-      | 1 -> !@p_exclusive_publication
-      | 0 -> poll ()
-      | _ -> assert false
-    in
-    poll ()
-  in
-  exclusive_publication
+let fragment_count_limit = 10
 
 let context_and_client () =
-  let ctx =
-    let p_context = Alloc.ptr_context () in
-    let err = context_init p_context in
-    assert (err = 0);
-    !@p_context
-  in
-
-  let client =
-    let p_client = Alloc.ptr_client () in
-    let err = init p_client ctx in
-    assert (err = 0);
-    !@p_client
-  in
-
-  let err = start client in
-  assert (err = 0);
+  let ctx = context_init () in
+  let client = init ctx in
+  start client;
   ctx, client
 
-let cache = ref []
+let cleanup ctx client =
+  close client;
+  context_close ctx
+
+let create_subscription client (uri, stream_id) =
+  match async_add_subscription client uri stream_id None None with
+  | None -> failwith "failed to get sub async"
+  | Some async ->
+    let rec poll () =
+      match async_add_subscription_poll async with
+      | Error -> failwith "async_add_subscription_poll error"
+      | TryAgain ->
+        Unix.sleepf 1e-6;
+        poll ()
+      | Ok subscription -> subscription
+    in
+    let subscription = poll () in
+
+    let rec wait_until_connected () =
+      if not (subscription_is_connected subscription) then
+        wait_until_connected ()
+      else
+        ()
+    in
+    wait_until_connected ();
+    subscription
+
+let create_exclusive_publication client (uri, stream_id) =
+  let async = async_add_exclusive_publication client uri stream_id in
+  let rec poll () =
+    match async_add_exclusive_publication_poll async with
+    | Ok x_pub -> x_pub
+    | TryAgain ->
+      print_endline "x-pub try again";
+      poll ()
+    | Error -> failwith "x-pub error"
+  in
+  poll ()
+
+let string_of_publication_error = function
+  | Not_connected -> "not connected"
+  | Back_pressured -> "back pressured"
+  | Admin_action -> "admin action"
+  | Closed -> "closed"
+  | Max_position_exceeded -> "max position exceeded"
+  | Error -> "error"
 
 let ping =
-  let pong_measuring_handler _add_to_histogram _clientd buffer length _header =
+  let add_to_histogram _ = () in
+
+  let pong_measuring_handler buffer =
     let end_ns = nano_clock () in
-    let start_s = string_from_ptr buffer ~length:(s_to_i length) in
-    let start_ns = Int64.of_string start_s in
-    let duration_ns = Int64.(sub end_ns start_ns) in
-    _add_to_histogram duration_ns
+    let start_ns = int_of_string buffer in
+    let duration_ns = end_ns - start_ns in
+    add_to_histogram duration_ns
+  in
+  Callback.register "pmh" pong_measuring_handler;
+
+  let image_fragment_assembler =
+    match image_fragment_assembler_create pong_measuring_handler with
+    | Some image_fragment_assembler -> image_fragment_assembler
+    | None -> failwith "failed to create image fragment assembler"
   in
 
-  let send_ping_and_recv_pong publication image fragment_handler
-      fragment_assembler_handler num_messages =
+  let send_ping_and_recv_pong publication image num_messages =
     let rec loop n i =
       if i < n then (
         let now_ns = nano_clock () in
-        let msg = Int64.to_string now_ns in
-        let length = i_to_s (String.length msg) in
-        let position = send msg length in
+        let msg = string_of_int now_ns in
+        let position = send msg in
         recv position;
         loop n (i + 1)
       )
-    and send msg length =
-      let position =
-        exclusive_publication_offer publication msg length None null
-      in
-      if position >= 0L then
-        position
-      else
-        send msg length
+    and send msg =
+      match exclusive_publication_offer publication msg with
+      | Ok position -> position
+      | Error code ->
+        print_endline (string_of_publication_error code);
+        exit 1
     and recv position =
       if image_position image < position then
         poll ()
       else
         ()
     and poll () =
-      if
-        image_poll image fragment_handler fragment_assembler_handler
-          fragment_count_limit
-        <= 0
-      then (
-        idle_strategy_busy_spinning_idle null 0;
+      match image_poll image image_fragment_assembler fragment_count_limit with
+      | None -> failwith "failed to poll image"
+      | Some n when n = 0 ->
+        Unix.sleep 0;
+        idle_strategy_busy_spinning_idle 0 0;
         poll ()
-      )
+      | Some _ -> ()
     in
+
     loop num_messages 0
   in
 
@@ -145,89 +120,57 @@ let ping =
     let subscription = create_subscription client pong_canal in
     let publication = create_exclusive_publication client ping_canal in
 
-    let image = subscription_image_at_index subscription (i_to_s 0) in
-
-    let c = ref 0 in
-    let pph =
-      pong_measuring_handler (fun duration ->
-          incr c;
-          Printf.printf "[%d] duration=%Ld\n%!" !c duration)
-    in
-    cache := pph :: !cache;
-
-    let fragment_assembler =
-      let p_fragment_assembler = Alloc.ptr_image_fragment_assembler () in
-      let res = image_fragment_assembler_create p_fragment_assembler pph null in
-      assert (res = 0);
-      !@p_fragment_assembler
+    let image =
+      match subscription_image_at_index subscription 0 with
+      | None -> failwith "subscription_image_at_index"
+      | Some image -> image
     in
 
-    send_ping_and_recv_pong publication image image_fragment_assembler_handler
-      fragment_assembler number_of_messages
+    send_ping_and_recv_pong publication image number_of_messages
 
 let pong =
-  let sends = ref 0 in
-  let recvs = ref 0 in
-  let hndlr = ref 0 in
-
-  let pr_sr () =
-    if !sends mod 100 = 0 || !recvs mod 100 = 0 || !hndlr mod 100 = 0 then
-      Printf.printf "sends=%d recvs=%d hndlr=%d\n%!" !sends !recvs !hndlr
-  in
-
-  let rec offer_until_success publication buffer length =
-    let result =
-      exclusive_publication_offer publication buffer length None null
-    in
-    if result < 0L then (
-      idle_strategy_busy_spinning_idle null 0;
-      offer_until_success publication buffer length
-    ) else (
-      let () = incr sends in
-      let () = pr_sr () in
+  let offer_until_success publication msg =
+    print_endline "ous";
+    match exclusive_publication_offer publication msg with
+    | Ok _ ->
+      print_endline "ous: ok";
       ()
-    )
-  in
-
-  let ping_poll_handler publication _ buffer length _ =
-    incr hndlr;
-    let msg = string_from_ptr buffer ~length:(s_to_i length) in
-    offer_until_success publication msg length
+    | Error code ->
+      print_endline "ous: err";
+      print_endline (string_of_publication_error code);
+      exit 1
   in
 
   fun () ->
-    let _context, client = context_and_client () in
+    let context, client = context_and_client () in
     let subscription = create_subscription client ping_canal in
 
     let publication = create_exclusive_publication client pong_canal in
-    let pph = ping_poll_handler publication in
-    cache := pph :: !cache;
+    let ping_poll_handler = offer_until_success publication in
+    Callback.register "pph" ping_poll_handler;
 
-    let image = subscription_image_at_index subscription (i_to_s 0) in
+    let image =
+      match subscription_image_at_index subscription 0 with
+      | None -> failwith "subscription_image_at_index"
+      | Some image -> image
+    in
 
-    let fragment_assembler =
-      let p_fragment_assembler = Alloc.ptr_image_fragment_assembler () in
-      let res = image_fragment_assembler_create p_fragment_assembler pph null in
-      assert (res = 0);
-      !@p_fragment_assembler
+    let image_fragment_assembler =
+      match image_fragment_assembler_create ping_poll_handler with
+      | None -> failwith "image_fragment_assembler_create"
+      | Some fragment_assembler -> fragment_assembler
     in
 
     let rec loop () =
-      let fragments_read =
-        image_poll image image_fragment_assembler_handler fragment_assembler
-          fragment_count_limit
-      in
-      if !recvs mod 1_000_000 = 0 then pr_sr ();
-      if fragments_read < 0 then (
-        print_endline (errmsg ());
-        exit 1
-      ) else (
-        let () = incr recvs in
-        idle_strategy_busy_spinning_idle null fragments_read;
+      match image_poll image image_fragment_assembler fragment_count_limit with
+      | None -> failwith "image_poll"
+      | Some fragments_read ->
+        if fragments_read > 0 then Printf.printf "loop %d\n%!" fragments_read;
+        idle_strategy_busy_spinning_idle 0 fragments_read;
         loop ()
-      )
     in
-    loop ()
+    let _ = loop () in
+    cleanup context client
 
 let _ =
   match Sys.argv.(1) with

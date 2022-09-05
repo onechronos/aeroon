@@ -28,6 +28,7 @@
 #define subscription_val(v)                    (*((aeron_subscription_t                    **) Data_custom_val(v)))
 #define image_val(v)                           (*((aeron_image_t                           **) Data_custom_val(v)))
 #define fragment_assembler_val(v)              (*((aeron_fragment_assembler_t              **) Data_custom_val(v)))
+#define image_fragment_assembler_val(v)        (*((aeron_image_fragment_assembler_t        **) Data_custom_val(v)))
 
 CAMLprim value aa_version_major(value _unit)
 {
@@ -77,6 +78,18 @@ CAMLprim value aa_errcode(value _unit)
 {
   CAMLparam1(_unit);
   CAMLreturn(Int_val( aeron_errcode() ) );
+}
+
+CAMLprim value aa_nano_clock(value _unit)
+{
+  CAMLparam1(_unit);
+  CAMLreturn(Int_val( aeron_nano_clock() ) );
+}
+
+CAMLprim value aa_epoch_clock(value _unit)
+{
+  CAMLparam1(_unit);
+  CAMLreturn(Int_val( aeron_epoch_clock() ) );
 }
 
 void aa_context_close(value o_context)
@@ -550,9 +563,20 @@ void aa_fragment_handler(void* clientd,
 			 size_t length,
 			 aeron_header_t* _header) // ignore header for now
 {
+  // printf("aa_fragment_handler length=%ld\n", length); fflush(stdout);
   value o_buffer = caml_alloc_initialized_string(length, buffer);
   value o_function = (value)clientd;
+  // printf("LINE: %d clientd=%lx\n", __LINE__, (uint64_t)clientd ); fflush(stdout);
   caml_callback( o_function, o_buffer );
+  /*
+  if ( Is_exception_result(res) ) {
+    printf("exception\n");
+  }
+  else {
+    printf("noexception\n");
+  }
+  */
+  fflush(stdout);
 }
 
 CAMLprim value aa_fargment_assembler_create( value o_delegate )
@@ -569,6 +593,32 @@ CAMLprim value aa_fargment_assembler_create( value o_delegate )
     o_fragment_assembler = caml_alloc_small( sizeof(aeron_fragment_assembler_t*), Abstract_tag);
     fragment_assembler_val(o_fragment_assembler) = fragment_assembler;
     o_res = caml_alloc_some( o_fragment_assembler );
+  }
+  else if ( res == -1 ) {
+    // None
+    o_res = Val_none;
+  }
+  else {
+    assert(false);
+  }
+  CAMLreturn(o_res);
+}
+
+// apply 's/fragment/image_fragment/g' to function aa_fragment_assembler_create
+CAMLprim value aa_image_fargment_assembler_create( value o_delegate )
+{
+  CAMLparam1( o_delegate );
+  CAMLlocal2( o_image_fragment_assembler, o_res );
+  aeron_image_fragment_assembler_t* image_fragment_assembler = NULL;
+  void* clientd = (void*)o_delegate;
+  int res = aeron_image_fragment_assembler_create( &image_fragment_assembler,
+						   aa_fragment_handler,
+						   clientd );
+  if ( res == 0 ) {
+    // Some image_fragment_assembler
+    o_image_fragment_assembler = caml_alloc_small( sizeof(aeron_image_fragment_assembler_t*), Abstract_tag);
+    image_fragment_assembler_val(o_image_fragment_assembler) = image_fragment_assembler;
+    o_res = caml_alloc_some( o_image_fragment_assembler );
   }
   else if ( res == -1 ) {
     // None
@@ -618,7 +668,7 @@ CAMLprim value aa_image_poll( value o_image,
   aeron_fragment_assembler_t* fragment_assembler = fragment_assembler_val(o_fragment_assembler);
   size_t fragment_limit = Int_val(o_fragment_limit);
   int res = aeron_image_poll( image,
-			      aeron_fragment_assembler_handler,
+			      aeron_image_fragment_assembler_handler,
 			      fragment_assembler,
 			      fragment_limit );
   if ( res >= 0 ) {
@@ -695,3 +745,19 @@ CAMLprim value aa_subscription_image_at_index( value o_subscription, value o_ind
   }
   CAMLreturn(o_res);
 }  
+
+CAMLprim value aa_image_position( value o_image )
+{
+  CAMLparam1(o_image);
+  aeron_image_t* image = image_val(o_image);
+  int64_t res = aeron_image_position(image);
+  CAMLreturn(Int_val(res));
+}
+
+CAMLprim value aa_subscription_is_connected( value o_subscription )
+{
+  CAMLparam1(o_subscription);
+  aeron_subscription_t* subscription = subscription_val(o_subscription);
+  bool result = aeron_subscription_is_connected(subscription);
+  CAMLreturn(Val_bool(result));
+}

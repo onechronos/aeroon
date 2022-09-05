@@ -98,11 +98,19 @@ let () =
 
   let fragment_handler msg = print_endline ("fragment handler: " ^ msg) in
   Callback.register "fh" fragment_handler;
+
   let fragment_assembler =
     match fragment_assembler_create fragment_handler with
     | Some fragment_assembler -> fragment_assembler
     | None -> failwith "failed to create fragment assembler"
   in
+
+  let image_fragment_assembler =
+    match image_fragment_assembler_create fragment_handler with
+    | Some image_fragment_assembler -> image_fragment_assembler
+    | None -> failwith "failed to create image fragment assembler"
+  in
+
   let rec poll () =
     match subscription_poll subscription fragment_assembler 10 with
     | Some num_frags_read when num_frags_read = 0 -> poll ()
@@ -123,7 +131,7 @@ let () =
     | Some image -> image
   in
 
-  (match image_poll image fragment_assembler 10 with
+  (match image_poll image image_fragment_assembler 10 with
   | None -> failwith "failed to poll image"
   | Some n -> Printf.printf "polled %d fragments\n" n);
 
