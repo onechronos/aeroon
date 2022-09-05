@@ -16,6 +16,7 @@
 
 /* Aeron */
 #include <aeronc.h>
+#include <aeron_agent.h>
 
 #define context_val(v)                         (*((aeron_context_t                         **) Data_custom_val(v)))
 #define client_val(v)                          (*((aeron_t                                 **) Data_custom_val(v)))
@@ -604,3 +605,93 @@ CAMLprim value aa_subscription_poll( value o_subscription,
   }
   CAMLreturn(o_res);
 }
+
+// like subscription_poll, but 's/subscription/image/g'
+CAMLprim value aa_image_poll( value o_image,
+			      // TODO: o_fragment_assembler_handler
+			      value o_fragment_assembler,
+			      value o_fragment_limit )
+{
+  CAMLparam3(o_image, o_fragment_assembler, o_fragment_limit );
+  CAMLlocal1(o_res);
+  aeron_image_t* image = image_val(o_image);
+  aeron_fragment_assembler_t* fragment_assembler = fragment_assembler_val(o_fragment_assembler);
+  size_t fragment_limit = Int_val(o_fragment_limit);
+  int res = aeron_image_poll( image,
+			      aeron_fragment_assembler_handler,
+			      fragment_assembler,
+			      fragment_limit );
+  if ( res >= 0 ) {
+    // Some num_fragments_received
+    o_res = caml_alloc_some( Val_int(res) );
+  }
+  else { /* Note: documentation says that (-1) is the only other
+	    possible result, but sample clients indicate otherwise */
+    // None
+    o_res = Val_none;
+  }
+  CAMLreturn(o_res);
+}
+
+CAMLprim value aa_idle_strategy_sleeping_idle( value o_nanos, value o_work_count )
+{
+  CAMLparam2(o_nanos, o_work_count);
+  int64_t nanos = Int_val(o_nanos);
+  int work_count = Int_val(o_work_count);
+  aeron_idle_strategy_sleeping_idle( (void*)(&nanos), work_count );
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value aa_idle_strategy_yielding_idle( value o_nanos, value o_work_count )
+{
+  CAMLparam2(o_nanos, o_work_count);
+  int64_t nanos = Int_val(o_nanos);
+  int work_count = Int_val(o_work_count);
+  aeron_idle_strategy_yielding_idle( (void*)(&nanos), work_count );
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value aa_idle_strategy_busy_spinning_idle( value o_nanos, value o_work_count )
+{
+  CAMLparam2(o_nanos, o_work_count);
+  int64_t nanos = Int_val(o_nanos);
+  int work_count = Int_val(o_work_count);
+  aeron_idle_strategy_busy_spinning_idle( (void*)(&nanos), work_count );
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value aa_idle_strategy_noop_idle( value o_nanos, value o_work_count )
+{
+  CAMLparam2(o_nanos, o_work_count);
+  int64_t nanos = Int_val(o_nanos);
+  int work_count = Int_val(o_work_count);
+  aeron_idle_strategy_noop_idle( (void*)(&nanos), work_count );
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value aa_idle_strategy_backoff_idle( value o_nanos, value o_work_count )
+{
+  CAMLparam2(o_nanos, o_work_count);
+  int64_t nanos = Int_val(o_nanos);
+  int work_count = Int_val(o_work_count);
+  aeron_idle_strategy_backoff_idle( (void*)(&nanos), work_count );
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value aa_subscription_image_at_index( value o_subscription, value o_index )
+{
+  CAMLparam2(o_subscription, o_index);
+  CAMLlocal2(o_image, o_res);
+  aeron_subscription_t* subscription = subscription_val(o_subscription);
+  size_t index = Int_val(o_index);
+  aeron_image_t* image = aeron_subscription_image_at_index( subscription, index );
+  if ( image == NULL ) {
+    o_res = Val_none;
+  }
+  else {
+    o_image = caml_alloc_small( sizeof(aeron_image_t*), Abstract_tag );
+    image_val(o_image) = image;
+    o_res = caml_alloc_some( o_image );
+  }
+  CAMLreturn(o_res);
+}  

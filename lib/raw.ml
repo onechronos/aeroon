@@ -121,3 +121,27 @@ external subscription_poll :
   (* TODO: -> fragment_assembler_handler *) fragment_assembler ->
   int ->
   int option = "aa_subscription_poll"
+
+external image_poll :
+  image ->
+  (* TODO: -> fragment_assembler_handler *) fragment_assembler ->
+  int ->
+  int option = "aa_image_poll"
+
+external idle_strategy_sleeping_idle : int -> int -> unit
+  = "aa_idle_strategy_sleeping_idle"
+
+external idle_strategy_yielding_idle : int -> int -> unit
+  = "aa_idle_strategy_yielding_idle"
+
+external idle_strategy_busy_spinning_idle : int -> int -> unit
+  = "aa_idle_strategy_busy_spinning_idle"
+
+external idle_strategy_noop_noop_idle : int -> int -> unit
+  = "aa_idle_strategy_noop_idle"
+
+external idle_strategy_backoff_idle : int -> int -> unit
+  = "aa_idle_strategy_backoff_idle"
+
+external subscription_image_at_index : subscription -> int -> image option
+  = "aa_subscription_image_at_index"

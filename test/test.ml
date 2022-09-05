@@ -79,7 +79,6 @@ let () =
       poll ()
     | None -> failwith "failed to get sub async"
   in
-  ignore subscription;
 
   let msg =
     "This is a test of the emergency broadcast system. This is only a test."
@@ -117,6 +116,16 @@ let () =
       failwith err_msg
   in
   poll ();
+
+  let image =
+    match subscription_image_at_index subscription 0 with
+    | None -> failwith "no image at index 0"
+    | Some image -> image
+  in
+
+  (match image_poll image fragment_assembler 10 with
+  | None -> failwith "failed to poll image"
+  | Some n -> Printf.printf "polled %d fragments\n" n);
 
   let is_client_closed = ref false in
   let is_context_closed = ref false in
