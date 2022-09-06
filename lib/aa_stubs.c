@@ -324,14 +324,18 @@ CAMLprim value aa_async_add_exclusive_publication_poll(value o_async)
 // We use an OCaml closure as the Aeron client data (clientd)
 void aa_on_image(void *clientd, aeron_subscription_t *subscription, aeron_image_t *image)
 {
-  value o_subscription = caml_alloc_small( sizeof(aeron_subscription_t*), Abstract_tag);
+  CAMLparam0 ();
+  CAMLlocal3( o_subscription, o_image, o_function );
+
+  o_subscription = caml_alloc_small( sizeof(aeron_subscription_t*), Abstract_tag);
   subscription_val( o_subscription ) = subscription;
 
-  value o_image = caml_alloc_small( sizeof(aeron_image_t*), Abstract_tag);
+  o_image = caml_alloc_small( sizeof(aeron_image_t*), Abstract_tag);
   image_val( o_image ) = image;
 
-  value o_function = (value)clientd;
+  o_function = (value)clientd;
   caml_callback2( o_function, o_subscription, o_image );
+  CAMLreturn0;
 }
 
 CAMLprim value aa_async_add_subscription(value o_client,
@@ -518,8 +522,11 @@ CAMLprim value aa_exclusive_publication_offer(value o_exclusive_publication, val
 
 void aa_notification(void* clientd)
 {
-  value o_function = (value)clientd;
+  CAMLparam0 ();
+  CAMLlocal1( o_function );
+  o_function = (value)clientd;
   caml_callback( o_function, Val_unit );
+  CAMLreturn0;
 }
 
 CAMLprim value aa_publication_close(value o_publication, value o_on_close_complete_opt)
@@ -567,20 +574,13 @@ void aa_fragment_handler(void* clientd,
 			 aeron_header_t* _header) // ignore header for now
 {
   CAMLparam0();
+  CAMLlocal2(o_buffer, o_function);
   // printf("aa_fragment_handler length=%ld\n", length); fflush(stdout);
-  value o_buffer = caml_alloc_initialized_string(length, buffer);
-  value o_function = (value)clientd;
+  o_buffer = caml_alloc_initialized_string(length, buffer);
+  o_function = (value)clientd;
   printf("LINE: %d clientd=%lx\n", __LINE__, (uint64_t)clientd ); fflush(stdout);
   caml_callback( o_function, o_buffer );
-  /*
-  if ( Is_exception_result(res) ) {
-    printf("exception\n");
-  }
-  else {
-    printf("noexception\n");
-  }
-  fflush(stdout);
-  */
+  printf("LINE: %d clientd=%lx\n", __LINE__, (uint64_t)clientd ); fflush(stdout);
   CAMLreturn0;
 }
 
@@ -623,7 +623,8 @@ CAMLprim value aa_image_fargment_assembler_create( value o_delegate )
   if ( res == 0 ) {
     // Some image_fragment_assembler
     caml_register_global_root( &o_delegate );
-    o_image_fragment_assembler = caml_alloc_small( sizeof(aeron_image_fragment_assembler_t*), Abstract_tag);
+    o_image_fragment_assembler =
+      caml_alloc_small( sizeof(aeron_image_fragment_assembler_t*), Abstract_tag);
     image_fragment_assembler_val(o_image_fragment_assembler) = image_fragment_assembler;
     o_res = caml_alloc_some( o_image_fragment_assembler );
   }

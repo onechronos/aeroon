@@ -75,7 +75,6 @@ let ping =
     let duration_ns = end_ns - start_ns in
     add_to_histogram duration_ns
   in
-  Callback.register "pmh" pong_measuring_handler;
 
   let image_fragment_assembler =
     match image_fragment_assembler_create pong_measuring_handler with
@@ -107,7 +106,6 @@ let ping =
       match image_poll image image_fragment_assembler fragment_count_limit with
       | None -> failwith "failed to poll image"
       | Some n when n = 0 ->
-        Unix.sleep 0;
         idle_strategy_busy_spinning_idle 0 0;
         poll ()
       | Some _ -> ()
@@ -133,56 +131,51 @@ let ping =
     Unix.sleep 5;
     send_ping_and_recv_pong publication image number_of_messages
 
-let pong =
-  let offer_until_success publication msg =
-    print_endline "ous";
+let pong () =
+  let context, client = context_and_client () in
+  let subscription = create_subscription client ping_canal in
+  print_endline "have subscription";
+
+  let publication = create_exclusive_publication client pong_canal in
+  print_endline "have publication";
+
+  let send msg =
+    print_endline ("msg: " ^ msg);
     match exclusive_publication_offer publication msg with
-    | Ok _ ->
-      print_endline "ous: ok";
-      ()
+    | Ok position -> Printf.printf "ous: ok %d\n" position
     | Error code ->
-      print_endline "ous: err";
       print_endline (string_of_publication_error code);
       exit 1
   in
 
-  fun () ->
-    let context, client = context_and_client () in
-    let subscription = create_subscription client ping_canal in
-    print_endline "have subscription";
+  Gc.finalise (fun _ -> print_endline "ous") send;
 
-    let publication = create_exclusive_publication client pong_canal in
-    print_endline "have publication";
+  let image =
+    match subscription_image_at_index subscription 0 with
+    | None -> failwith "subscription_image_at_index"
+    | Some image -> image
+  in
 
-    let ping_poll_handler = offer_until_success publication in
-    Callback.register "pph" ping_poll_handler;
-    Gc.finalise (fun _ -> print_endline "finalizing pph") ping_poll_handler;
+  let image_fragment_assembler =
+    match image_fragment_assembler_create send with
+    | None -> failwith "image_fragment_assembler_create"
+    | Some fragment_assembler -> fragment_assembler
+  in
 
-    let image =
-      match subscription_image_at_index subscription 0 with
-      | None -> failwith "subscription_image_at_index"
-      | Some image -> image
-    in
+  let rec loop () =
+    match image_poll image image_fragment_assembler fragment_count_limit with
+    | None -> failwith "image_poll"
+    | Some fragments_read ->
+      if fragments_read > 0 then Printf.printf "loop %d\n%!" fragments_read;
 
-    let image_fragment_assembler =
-      match image_fragment_assembler_create ping_poll_handler with
-      | None -> failwith "image_fragment_assembler_create"
-      | Some fragment_assembler -> fragment_assembler
-    in
+      (* Thread.yield (); *)
+      idle_strategy_busy_spinning_idle 0 fragments_read;
+      loop ()
+  in
+  print_endline "looping";
 
-    let rec loop () =
-      match image_poll image image_fragment_assembler fragment_count_limit with
-      | None -> failwith "image_poll"
-      | Some fragments_read ->
-        if fragments_read > 0 then Printf.printf "loop %d\n%!" fragments_read;
-        Unix.sleep 0;
-        idle_strategy_busy_spinning_idle 0 fragments_read;
-        loop ()
-    in
-    print_endline "looping";
-
-    let _ = loop () in
-    cleanup context client
+  let _ = loop () in
+  cleanup context client
 
 let _ =
   match Sys.argv.(1) with
