@@ -30,7 +30,7 @@ let create_subscription client (uri, stream_id) =
       match async_add_subscription_poll async with
       | Error -> failwith "async_add_subscription_poll error"
       | TryAgain ->
-        Unix.sleepf 1e-6;
+        Unix.sleepf 0.1;
         poll ()
       | Ok subscription -> subscription
     in
@@ -51,8 +51,7 @@ let create_exclusive_publication client (uri, stream_id) =
     match async_add_exclusive_publication_poll async with
     | Ok x_pub -> x_pub
     | TryAgain ->
-      print_endline "x-pub try again";
-      Unix.sleepf 1e-6;
+      Unix.sleepf 0.1;
       poll ()
     | Error -> failwith "x-pub error"
   in
@@ -140,9 +139,9 @@ let pong () =
   print_endline "have publication";
 
   let send msg =
-    print_endline ("msg: " ^ msg);
     match exclusive_publication_offer publication msg with
-    | Ok position -> Printf.printf "ous: ok %d\n" position
+    | Ok position -> ignore position
+    (* Printf.printf "sent at position %d\n" position *)
     | Error code ->
       print_endline (string_of_publication_error code);
       exit 1
@@ -164,9 +163,7 @@ let pong () =
     match image_poll image image_fragment_assembler fragment_count_limit with
     | None -> failwith "image_poll"
     | Some fragments_read ->
-      if fragments_read > 0 then Printf.printf "loop %d\n%!" fragments_read;
-
-      (* Thread.yield (); *)
+      (* if fragments_read > 0 then Printf.printf "loop %d\n%!" fragments_read; *)
       idle_strategy_busy_spinning_idle 0 fragments_read;
       loop ()
   in
