@@ -541,7 +541,7 @@ CAMLprim value aa_publication_close(value o_publication, value o_on_close_comple
     o_on_close_complete = Some_val(o_on_close_complete_opt);
     on_close_complete = malloc(sizeof(value));
     assert(on_close_complete);
-    on_close_complete = o_on_close_complete;
+    on_close_complete = (void*)o_on_close_complete;
     caml_register_global_root(on_close_complete);
   }
   int res = aeron_publication_close( publication, aa_notification, on_close_complete );
@@ -579,13 +579,9 @@ void aa_fragment_handler(void* clientd,
 {
   CAMLparam0();
   CAMLlocal3(o_buffer, o_function, o_res);
-  // printf("aa_fragment_handler length=%ld\n", length); fflush(stdout);
   o_buffer = caml_alloc_initialized_string(length, buffer);
-  value * cb = (value*) clientd;
   o_function = *((value*) clientd);
-  printf("LINE: %d clientd=%lx\n", __LINE__, (uint64_t)clientd ); fflush(stdout);
   o_res = caml_callback( o_function, o_buffer );
-  printf("LINE: %d clientd=%lx\n", __LINE__, (uint64_t)clientd ); fflush(stdout);
   CAMLreturn0;
 }
 
@@ -605,7 +601,6 @@ CAMLprim value aa_fragment_assembler_create( value o_delegate )
 					     clientd );
   if ( res == 0 ) {
     // Some fragment_assembler
-    //caml_register_global_root( &o_delegate );
     o_fragment_assembler = caml_alloc_small( sizeof(aeron_fragment_assembler_t*), Abstract_tag);
     fragment_assembler_val(o_fragment_assembler) = fragment_assembler;
     o_res = caml_alloc_some( o_fragment_assembler );
@@ -637,7 +632,6 @@ CAMLprim value aa_image_fragment_assembler_create( value o_delegate )
 					     clientd );
   if ( res == 0 ) {
     // Some image_fragment_assembler
-    //caml_register_global_root( &o_delegate );
     o_image_fragment_assembler = caml_alloc_small( sizeof(aeron_image_fragment_assembler_t*), Abstract_tag);
     image_fragment_assembler_val(o_image_fragment_assembler) = image_fragment_assembler;
     o_res = caml_alloc_some( o_image_fragment_assembler );
