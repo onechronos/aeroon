@@ -148,8 +148,6 @@ let pong () =
       exit 1
   in
 
-  Gc.finalise (fun _ -> print_endline "ous") send;
-
   let image =
     match subscription_image_at_index subscription 0 with
     | None -> failwith "subscription_image_at_index"

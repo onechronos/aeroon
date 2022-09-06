@@ -118,13 +118,13 @@ type fragment_handler = string (* TODO: -> header *) -> unit
 type fragment_assembler
 
 external fragment_assembler_create :
-  fragment_handler -> fragment_assembler option = "aa_fargment_assembler_create"
+  fragment_handler -> fragment_assembler option = "aa_fragment_assembler_create"
 
 type image_fragment_assembler
 
 external image_fragment_assembler_create :
   fragment_handler -> image_fragment_assembler option
-  = "aa_image_fargment_assembler_create"
+  = "aa_image_fragment_assembler_create"
 
 external subscription_poll :
   subscription ->
