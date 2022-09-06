@@ -52,6 +52,7 @@ let create_exclusive_publication client (uri, stream_id) =
     | Ok x_pub -> x_pub
     | TryAgain ->
       print_endline "x-pub try again";
+      Unix.sleepf 1e-6;
       poll ()
     | Error -> failwith "x-pub error"
   in
@@ -118,14 +119,18 @@ let ping =
   fun () ->
     let _context, client = context_and_client () in
     let subscription = create_subscription client pong_canal in
+    print_endline "have subscription";
     let publication = create_exclusive_publication client ping_canal in
+    print_endline "have publication";
 
     let image =
       match subscription_image_at_index subscription 0 with
       | None -> failwith "subscription_image_at_index"
       | Some image -> image
     in
+    print_endline "starting send/recv";
 
+    Unix.sleep 5;
     send_ping_and_recv_pong publication image number_of_messages
 
 let pong =
@@ -144,10 +149,14 @@ let pong =
   fun () ->
     let context, client = context_and_client () in
     let subscription = create_subscription client ping_canal in
+    print_endline "have subscription";
 
     let publication = create_exclusive_publication client pong_canal in
+    print_endline "have publication";
+
     let ping_poll_handler = offer_until_success publication in
     Callback.register "pph" ping_poll_handler;
+    Gc.finalise (fun _ -> print_endline "finalizing pph") ping_poll_handler;
 
     let image =
       match subscription_image_at_index subscription 0 with
@@ -166,9 +175,12 @@ let pong =
       | None -> failwith "image_poll"
       | Some fragments_read ->
         if fragments_read > 0 then Printf.printf "loop %d\n%!" fragments_read;
+        Unix.sleep 0;
         idle_strategy_busy_spinning_idle 0 fragments_read;
         loop ()
     in
+    print_endline "looping";
+
     let _ = loop () in
     cleanup context client
 

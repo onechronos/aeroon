@@ -353,6 +353,7 @@ CAMLprim value aa_async_add_subscription(value o_client,
   if ( o_on_available_image_opt != Val_none ) {
     o_on_available_image = Some_val(o_on_available_image_opt);
     on_available_image = (void*)o_on_available_image;
+    caml_register_global_root(&o_on_available_image);
     on_available_image_handler = aa_on_image;
   }
 
@@ -361,6 +362,7 @@ CAMLprim value aa_async_add_subscription(value o_client,
   if ( o_on_unavailable_image_opt != Val_none ) {
     o_on_unavailable_image = Some_val(o_on_unavailable_image_opt);
     on_unavailable_image = (void*)o_on_unavailable_image;
+    caml_register_global_root(&o_on_unavailable_image);
     on_unavailable_image_handler = aa_on_image;
   }
 
@@ -529,6 +531,7 @@ CAMLprim value aa_publication_close(value o_publication, value o_on_close_comple
   if ( o_on_close_complete_opt != Val_none ) {
     o_on_close_complete = Some_val(o_on_close_complete_opt);
     on_close_complete = (void*)o_on_close_complete;
+    caml_register_global_root(&o_on_close_complete);
   }
   int res = aeron_publication_close( publication, aa_notification, on_close_complete );
   if (res == 0) {
@@ -563,10 +566,11 @@ void aa_fragment_handler(void* clientd,
 			 size_t length,
 			 aeron_header_t* _header) // ignore header for now
 {
+  CAMLparam0();
   // printf("aa_fragment_handler length=%ld\n", length); fflush(stdout);
   value o_buffer = caml_alloc_initialized_string(length, buffer);
   value o_function = (value)clientd;
-  // printf("LINE: %d clientd=%lx\n", __LINE__, (uint64_t)clientd ); fflush(stdout);
+  printf("LINE: %d clientd=%lx\n", __LINE__, (uint64_t)clientd ); fflush(stdout);
   caml_callback( o_function, o_buffer );
   /*
   if ( Is_exception_result(res) ) {
@@ -575,8 +579,9 @@ void aa_fragment_handler(void* clientd,
   else {
     printf("noexception\n");
   }
-  */
   fflush(stdout);
+  */
+  CAMLreturn0;
 }
 
 CAMLprim value aa_fargment_assembler_create( value o_delegate )
@@ -590,6 +595,7 @@ CAMLprim value aa_fargment_assembler_create( value o_delegate )
 					     clientd );
   if ( res == 0 ) {
     // Some fragment_assembler
+    caml_register_global_root( &o_delegate );
     o_fragment_assembler = caml_alloc_small( sizeof(aeron_fragment_assembler_t*), Abstract_tag);
     fragment_assembler_val(o_fragment_assembler) = fragment_assembler;
     o_res = caml_alloc_some( o_fragment_assembler );
@@ -616,6 +622,7 @@ CAMLprim value aa_image_fargment_assembler_create( value o_delegate )
 						   clientd );
   if ( res == 0 ) {
     // Some image_fragment_assembler
+    caml_register_global_root( &o_delegate );
     o_image_fragment_assembler = caml_alloc_small( sizeof(aeron_image_fragment_assembler_t*), Abstract_tag);
     image_fragment_assembler_val(o_image_fragment_assembler) = image_fragment_assembler;
     o_res = caml_alloc_some( o_image_fragment_assembler );
