@@ -675,17 +675,18 @@ CAMLprim value aa_subscription_poll( value o_subscription,
 // like subscription_poll, but 's/subscription/image/g'
 CAMLprim value aa_image_poll( value o_image,
 			      // TODO: o_fragment_assembler_handler
-			      value o_fragment_assembler,
+			      value o_image_fragment_assembler,
 			      value o_fragment_limit )
 {
-  CAMLparam3(o_image, o_fragment_assembler, o_fragment_limit );
+  CAMLparam3(o_image, o_image_fragment_assembler, o_fragment_limit );
   CAMLlocal1(o_res);
   aeron_image_t* image = image_val(o_image);
-  aeron_fragment_assembler_t* fragment_assembler = fragment_assembler_val(o_fragment_assembler);
+  aeron_image_fragment_assembler_t* image_fragment_assembler =
+    image_fragment_assembler_val(o_image_fragment_assembler);
   size_t fragment_limit = Int_val(o_fragment_limit);
   int res = aeron_image_poll( image,
 			      aeron_image_fragment_assembler_handler,
-			      fragment_assembler,
+			      image_fragment_assembler,
 			      fragment_limit );
   if ( res >= 0 ) {
     // Some num_fragments_received
