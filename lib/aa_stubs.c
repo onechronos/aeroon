@@ -78,19 +78,19 @@ CAMLprim value aa_errmsg(value _unit)
 CAMLprim value aa_errcode(value _unit)
 {
   CAMLparam1(_unit);
-  CAMLreturn(Int_val( aeron_errcode() ) );
+  CAMLreturn(Val_int( aeron_errcode() ) );
 }
 
 CAMLprim value aa_nano_clock(value _unit)
 {
   CAMLparam1(_unit);
-  CAMLreturn(Int_val( aeron_nano_clock() ) );
+  CAMLreturn(Val_int( aeron_nano_clock() ) );
 }
 
 CAMLprim value aa_epoch_clock(value _unit)
 {
   CAMLparam1(_unit);
-  CAMLreturn(Int_val( aeron_epoch_clock() ) );
+  CAMLreturn(Val_int( aeron_epoch_clock() ) );
 }
 
 void aa_context_close(value o_context)
@@ -469,7 +469,7 @@ CAMLprim value publication_result(int64_t res)
 
   if ( res >= 0L ) {
     // Ok position
-    Store_field( o_res, 0, Int_val((int)res) );
+    Store_field( o_res, 0, Val_int((int)res) );
   }
   else {
     // Error code
@@ -768,7 +768,7 @@ CAMLprim value aa_image_position( value o_image )
   CAMLparam1(o_image);
   aeron_image_t* image = image_val(o_image);
   int64_t res = aeron_image_position(image);
-  CAMLreturn(Int_val(res));
+  CAMLreturn(Val_int(res));
 }
 
 CAMLprim value aa_subscription_is_connected( value o_subscription )

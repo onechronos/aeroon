@@ -4,9 +4,9 @@ let ping_canal = "aeron:udp?endpoint=localhost:20123", 1002
 
 let pong_canal = "aeron:udp?endpoint=localhost:20124", 1003
 
-let number_of_messages = 1_000_000
+let num_measured_messages = 10_000_000
 
-(* let number_of_warm_up_messages = 100_000 *)
+let num_warm_up_messages = 100_000
 
 open Aeron.Raw
 
@@ -81,21 +81,48 @@ let string_of_publication_error = function
   | Max_position_exceeded -> "max position exceeded"
   | Error -> "error"
 
+let to_micro x = x /. 1000.
+
+let stats list =
+  let a = Array.of_list list in
+  Array.sort Stdlib.compare a;
+
+  let n = Array.length a in
+  let nf = float n in
+
+  let sum, sum_sq =
+    Array.fold_left
+      (fun (sum, sum_sq) x ->
+        assert (x >= 0);
+        let x = float x in
+        sum +. x, sum_sq +. (x *. x))
+      (0., 0.) a
+  in
+  let mean = sum /. nf in
+  let variance = (sum_sq /. nf) -. (mean *. mean) in
+  let std_dev = sqrt variance in
+  let n_tile k = truncate (k *. nf) in
+  let x_500 = a.(n_tile 0.500) in
+  let x_990 = a.(n_tile 0.990) in
+  let x_999 = a.(n_tile 0.999) in
+  Printf.printf
+    "n=%d\nmean=%0.2f±%0.2f\n50%%-ile=%0.2f\n99%%-ile=%0.2f\n99.9%%-ile=%0.2f\n"
+    n (to_micro mean) (to_micro std_dev)
+    (to_micro (float x_500))
+    (to_micro (float x_990))
+    (to_micro (float x_999))
+
 let ping =
   let durations = ref [] in
   let n = ref 0 in
-
-  let add_duration duration =
-    incr n;
-    durations := duration :: !durations;
-    if !n mod 100 = 0 then Printf.printf "n=%d\n%!" !n
-  in
 
   let pong_measuring_handler buffer =
     let end_ns = nano_clock () in
     let start_ns = int_of_string buffer in
     let duration_ns = end_ns - start_ns in
-    add_duration duration_ns
+    if !n mod 100_000 = 0 then Printf.printf "n=%d\n%!" !n;
+    if !n >= num_warm_up_messages then durations := duration_ns :: !durations;
+    incr n
   in
 
   let image_fragment_assembler =
@@ -104,14 +131,16 @@ let ping =
     | None -> failwith "failed to create image fragment assembler"
   in
 
-  let send_ping_and_recv_pong publication image num_messages =
-    let rec loop n i =
-      if i < n then (
+  let num_messages = num_measured_messages + num_warm_up_messages in
+
+  let send_ping_and_recv_pong publication image =
+    let rec loop () =
+      if !n < num_messages then (
         let now_ns = nano_clock () in
         let msg = string_of_int now_ns in
         let position = send msg in
         recv position;
-        loop n (i + 1)
+        loop ()
       )
     and send msg =
       match exclusive_publication_offer publication msg with
@@ -127,14 +156,14 @@ let ping =
     and poll () =
       match image_poll image image_fragment_assembler fragment_count_limit with
       | None -> failwith "failed to poll image"
-      | Some n when n = 0 ->
+      | Some 0 ->
         idle_strategy_busy_spinning_idle 0 0;
         poll ()
       | Some _ -> ()
     in
 
-    loop num_messages 0;
-    Printf.printf "%d\n" (List.length !durations)
+    loop ();
+    stats !durations
   in
 
   fun () ->
@@ -152,8 +181,8 @@ let ping =
     in
     print_endline "starting send/recv";
 
-    Unix.sleep 5;
-    send_ping_and_recv_pong publication image number_of_messages
+    Unix.sleep 1;
+    send_ping_and_recv_pong publication image
 
 let pong () =
   let use_image = false in
