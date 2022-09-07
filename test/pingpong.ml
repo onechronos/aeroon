@@ -4,7 +4,7 @@ let ping_canal = "aeron:udp?endpoint=localhost:20123", 1002
 
 let pong_canal = "aeron:udp?endpoint=localhost:20124", 1003
 
-let number_of_messages = 10_000_000
+let number_of_messages = 1_000_000
 
 (* let number_of_warm_up_messages = 100_000 *)
 
@@ -66,13 +66,20 @@ let string_of_publication_error = function
   | Error -> "error"
 
 let ping =
-  let add_to_histogram _ = () in
+  let durations = ref [] in
+  let n = ref 0 in
+
+  let add_duration duration =
+    incr n;
+    durations := duration :: !durations;
+    if !n mod 100 = 0 then Printf.printf "n=%d\n%!" !n
+  in
 
   let pong_measuring_handler buffer =
     let end_ns = nano_clock () in
     let start_ns = int_of_string buffer in
     let duration_ns = end_ns - start_ns in
-    add_to_histogram duration_ns
+    add_duration duration_ns
   in
 
   let image_fragment_assembler =
@@ -110,15 +117,17 @@ let ping =
       | Some _ -> ()
     in
 
-    loop num_messages 0
+    loop num_messages 0;
+    Printf.printf "%d\n" (List.length !durations)
   in
 
   fun () ->
     let _context, client = context_and_client () in
-    let subscription = create_subscription client pong_canal in
-    print_endline "have subscription";
     let publication = create_exclusive_publication client ping_canal in
     print_endline "have publication";
+
+    let subscription = create_subscription client pong_canal in
+    print_endline "have subscription";
 
     let image =
       match subscription_image_at_index subscription 0 with
@@ -137,6 +146,7 @@ let pong () =
 
   let publication = create_exclusive_publication client pong_canal in
   print_endline "have publication";
+  flush stdout;
 
   let send msg =
     match exclusive_publication_offer publication msg with
