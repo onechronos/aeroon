@@ -168,3 +168,16 @@ external subscription_image_at_index : subscription -> int -> image option
 
 external subscription_is_connected : subscription -> bool
   = "aa_subscription_is_connected"
+
+type buffer_claim
+
+external buffer_claim_create : unit -> buffer_claim = "aa_buffer_claim_create"
+
+external exclusive_publication_try_claim :
+  exclusive_publication ->
+  string ->
+  buffer_claim ->
+  (int, publication_error) result = "aa_exclusive_publication_try_claim"
+
+external buffer_claim_commit : buffer_claim -> string -> bool
+  = "aa_buffer_claim_commit"

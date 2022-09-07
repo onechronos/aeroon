@@ -57,6 +57,22 @@ let create_exclusive_publication client (uri, stream_id) =
   in
   poll ()
 
+let create_publication client (uri, stream_id) =
+  let async = async_add_publication client uri stream_id in
+  let rec poll () =
+    match async_add_publication_poll async with
+    | Ok pub -> pub
+    | TryAgain ->
+      Unix.sleepf 0.1;
+      poll ()
+    | Error -> failwith "pub error"
+  in
+  poll ()
+
+let () = ignore create_publication
+
+let () = ignore create_exclusive_publication
+
 let string_of_publication_error = function
   | Not_connected -> "not connected"
   | Back_pressured -> "back pressured"
@@ -145,20 +161,28 @@ let pong () =
   let subscription = create_subscription client ping_canal in
   print_endline "have subscription";
 
-  let publication = create_exclusive_publication client pong_canal in
-  print_endline "have publication";
+  let exclusive_publication = create_exclusive_publication client pong_canal in
+  print_endline "have exclusive_publication";
   flush stdout;
 
   let n = ref 0 in
-  let send msg =
-    match exclusive_publication_offer publication msg with
-    | Ok position ->
-      ignore position;
-      incr n;
-      if !n mod 1000 = 0 then Printf.printf "n=%d\n%!" !n
-    | Error code ->
-      print_endline (string_of_publication_error code);
-      exit 1
+  let send =
+    let buffer_claim = buffer_claim_create () in
+    let rec loop msg =
+      match
+        exclusive_publication_try_claim exclusive_publication msg buffer_claim
+      with
+      | Ok position ->
+        assert (position >= 0);
+        assert (buffer_claim_commit buffer_claim msg);
+
+        incr n;
+        if !n mod 1000 = 0 then Printf.printf "n=%d\n%!" !n
+      | Error _ ->
+        idle_strategy_busy_spinning_idle 0 0;
+        loop msg
+    in
+    loop
   in
 
   if use_image then (
@@ -179,6 +203,7 @@ let pong () =
       match image_poll image image_fragment_assembler fragment_count_limit with
       | None -> failwith "poll"
       | Some fragments_read ->
+        Printf.printf "%d %b\n%!" fragments_read (image_is_closed image);
         idle_strategy_busy_spinning_idle 0 fragments_read;
         loop ()
     in
@@ -199,6 +224,8 @@ let pong () =
       with
       | None -> failwith "poll"
       | Some fragments_read ->
+        Printf.printf "%d %b\n%!" fragments_read
+          (subscription_is_closed subscription);
         idle_strategy_busy_spinning_idle 0 fragments_read;
         loop ()
     in
