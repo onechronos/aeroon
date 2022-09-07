@@ -167,14 +167,11 @@ let pong () =
 
   let n = ref 0 in
   let send =
-    let buffer_claim = buffer_claim_create () in
     let rec loop msg =
-      match
-        exclusive_publication_try_claim exclusive_publication msg buffer_claim
-      with
-      | Ok position ->
-        assert (position >= 0);
-        assert (buffer_claim_commit buffer_claim msg);
+      Printf.printf "loop length=%d\n%!" (String.length msg);
+      match exclusive_publication_try_claim exclusive_publication msg with
+      | Ok buffer_claim ->
+        assert (buffer_claim_commit buffer_claim);
 
         incr n;
         if !n mod 1000 = 0 then Printf.printf "n=%d\n%!" !n
