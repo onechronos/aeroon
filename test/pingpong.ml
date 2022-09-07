@@ -140,6 +140,7 @@ let ping =
     send_ping_and_recv_pong publication image number_of_messages
 
 let pong () =
+  let use_image = false in
   let context, client = context_and_client () in
   let subscription = create_subscription client ping_canal in
   print_endline "have subscription";
@@ -148,38 +149,63 @@ let pong () =
   print_endline "have publication";
   flush stdout;
 
+  let n = ref 0 in
   let send msg =
     match exclusive_publication_offer publication msg with
-    | Ok position -> ignore position
-    (* Printf.printf "sent at position %d\n" position *)
+    | Ok position ->
+      ignore position;
+      incr n;
+      if !n mod 1000 = 0 then Printf.printf "n=%d\n%!" !n
     | Error code ->
       print_endline (string_of_publication_error code);
       exit 1
   in
 
-  let image =
-    match subscription_image_at_index subscription 0 with
-    | None -> failwith "subscription_image_at_index"
-    | Some image -> image
-  in
+  if use_image then (
+    let image =
+      match subscription_image_at_index subscription 0 with
+      | None -> failwith "subscription_image_at_index"
+      | Some image -> image
+    in
 
-  let image_fragment_assembler =
-    match image_fragment_assembler_create send with
-    | None -> failwith "image_fragment_assembler_create"
-    | Some fragment_assembler -> fragment_assembler
-  in
+    let image_fragment_assembler =
+      match image_fragment_assembler_create send with
+      | None -> failwith "image_fragment_assembler_create"
+      | Some fragment_assembler -> fragment_assembler
+    in
 
-  let rec loop () =
-    match image_poll image image_fragment_assembler fragment_count_limit with
-    | None -> failwith "image_poll"
-    | Some fragments_read ->
-      (* if fragments_read > 0 then Printf.printf "loop %d\n%!" fragments_read; *)
-      idle_strategy_busy_spinning_idle 0 fragments_read;
-      loop ()
-  in
-  print_endline "looping";
+    let rec loop : unit -> unit =
+     fun () ->
+      match image_poll image image_fragment_assembler fragment_count_limit with
+      | None -> failwith "poll"
+      | Some fragments_read ->
+        idle_strategy_busy_spinning_idle 0 fragments_read;
+        loop ()
+    in
+    print_endline "looping";
 
-  let _ = loop () in
+    loop ()
+  ) else (
+    let fragment_assembler =
+      match fragment_assembler_create send with
+      | None -> failwith "fragment_assembler_create"
+      | Some fragment_assembler -> fragment_assembler
+    in
+
+    let rec loop : unit -> unit =
+     fun () ->
+      match
+        subscription_poll subscription fragment_assembler fragment_count_limit
+      with
+      | None -> failwith "poll"
+      | Some fragments_read ->
+        idle_strategy_busy_spinning_idle 0 fragments_read;
+        loop ()
+    in
+    print_endline "looping";
+
+    loop ()
+  );
   cleanup context client
 
 let _ =

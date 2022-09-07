@@ -1,4 +1,4 @@
 (executables
  (names test pubsub pingpong)
- (libraries aeron unix))
+ (libraries aeron unix threads))
  
