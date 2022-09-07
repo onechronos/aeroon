@@ -166,20 +166,10 @@ let pong () =
   flush stdout;
 
   let n = ref 0 in
-  let send =
-    let rec loop msg =
-      Printf.printf "loop length=%d\n%!" (String.length msg);
-      match exclusive_publication_try_claim exclusive_publication msg with
-      | Ok buffer_claim ->
-        assert (buffer_claim_commit buffer_claim);
-
-        incr n;
-        if !n mod 1000 = 0 then Printf.printf "n=%d\n%!" !n
-      | Error _ ->
-        idle_strategy_busy_spinning_idle 0 0;
-        loop msg
-    in
-    loop
+  let send msg =
+    assert (exclusive_publication_try_claim exclusive_publication msg);
+    incr n;
+    if !n mod 1000 = 0 then Printf.printf "n=%d\n%!" !n
   in
 
   if use_image then (
@@ -200,7 +190,6 @@ let pong () =
       match image_poll image image_fragment_assembler fragment_count_limit with
       | None -> failwith "poll"
       | Some fragments_read ->
-        Printf.printf "%d %b\n%!" fragments_read (image_is_closed image);
         idle_strategy_busy_spinning_idle 0 fragments_read;
         loop ()
     in
@@ -221,8 +210,6 @@ let pong () =
       with
       | None -> failwith "poll"
       | Some fragments_read ->
-        Printf.printf "%d %b\n%!" fragments_read
-          (subscription_is_closed subscription);
         idle_strategy_busy_spinning_idle 0 fragments_read;
         loop ()
     in

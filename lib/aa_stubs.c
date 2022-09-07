@@ -505,14 +505,24 @@ CAMLprim value aa_exclusive_publication_offer(value o_exclusive_publication, val
   CAMLreturn(publication_result(res));
 }
 
-// TODO: aa_buffer_claim_delete
-
-CAMLprim value aa_buffer_claim_commit(value o_buffer_claim)
+CAMLprim value aa_exclusive_publication_try_claim( value o_exclusive_publication,
+						   value o_buffer )
 {
-  CAMLparam1( o_buffer_claim );
+  CAMLparam2( o_exclusive_publication, o_buffer );
+  aeron_exclusive_publication_t* exclusive_publication =
+    exclusive_publication_val(o_exclusive_publication);
+  const char* buffer = String_val(o_buffer);
+  int length = caml_string_length(o_buffer);
 
-  aeron_buffer_claim_t* buffer_claim = buffer_claim_val(o_buffer_claim);
-  int err = aeron_buffer_claim_commit( buffer_claim );
+  aeron_buffer_claim_t buffer_claim;
+  while (aeron_exclusive_publication_try_claim( exclusive_publication,
+						length,
+						&buffer_claim ) < 0) {
+    aeron_idle_strategy_busy_spinning_idle(NULL, 0);
+  }
+  
+  memcpy(buffer_claim.data, buffer, length);
+  int err = aeron_buffer_claim_commit(&buffer_claim);
   bool res;
   if ( err == 0 ) {
     res = true;
@@ -525,46 +535,6 @@ CAMLprim value aa_buffer_claim_commit(value o_buffer_claim)
   }
   CAMLreturn(Val_bool(res));
 }
-
-CAMLprim value aa_exclusive_publication_try_claim( value o_exclusive_publication,
-						   value o_buffer)
-{
-  CAMLparam2( o_exclusive_publication, o_buffer );
-  CAMLlocal3( o_buffer_claim, o_res, o_pub_error );
-  aeron_exclusive_publication_t* exclusive_publication =
-    exclusive_publication_val(o_exclusive_publication);
-
-  aeron_buffer_claim_t buffer_claim_tmp;
-  const char* buffer = String_val(o_buffer);
-  int length = caml_string_length(o_buffer);
-  int64_t position = aeron_exclusive_publication_try_claim( exclusive_publication,
-							    length,
-							    &buffer_claim_tmp );
-  o_res = caml_alloc(1, 0);
-
-  if ( position < 0 ) {
-    // Error publication_error
-    o_pub_error = publication_error_code( position );
-    Store_field( o_res, 1, o_pub_error );
-  }
-  else {
-    aeron_buffer_claim_t* buffer_claim =
-      (aeron_buffer_claim_t*)malloc( sizeof(aeron_buffer_claim_t) );
-    // copy
-    memcpy(buffer_claim, &buffer_claim_tmp, sizeof(aeron_buffer_claim_t));
-    
-    // copy
-    memcpy(buffer_claim->data, buffer, length);
-
-    o_buffer_claim = caml_alloc_small( sizeof(aeron_buffer_claim_t*), Abstract_tag);
-    buffer_claim_val( o_buffer_claim ) = buffer_claim;
-    
-    // OK buffer_claim
-    Store_field( o_res, 0, o_buffer_claim );
-  }
-  CAMLreturn(o_res);
-}
-
 
 void aa_notification(void* clientd)
 {
@@ -608,7 +578,6 @@ void aa_fragment_handler(void* clientd,
 {
   CAMLparam0();
   CAMLlocal3(o_buffer, o_function, o_res);
-  printf("LINE %d length=%ld\n", __LINE__, length); fflush(stdout);
   o_buffer = caml_alloc_initialized_string(length, buffer);
   o_function = *((value*) clientd);
   o_res = caml_callback( o_function, o_buffer );
