@@ -465,9 +465,10 @@ CAMLprim value publication_result(int64_t res)
   CAMLparam0 ();
   CAMLlocal1( o_res );
 
+  o_res = caml_alloc(1, 0);
+
   if ( res >= 0L ) {
     // Ok position
-    o_res = caml_alloc(1, 0);
     Store_field( o_res, 0, Int_val((int)res) );
   }
   else {
