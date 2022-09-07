@@ -557,21 +557,6 @@ CAMLprim value aa_publication_close(value o_publication, value o_on_close_comple
   CAMLreturn(o_res);
 }
 
-CAMLprim value aa_publication_is_closed(value o_publication)
-{
-  CAMLparam1(o_publication);
-  CAMLlocal1(o_res);
-  aeron_publication_t* publication = publication_val(o_publication);
-  bool res = aeron_publication_is_closed( publication );
-  if ( res ) {
-    o_res = Val_true;
-  }
-  else {
-    o_res = Val_false;
-  }
-  CAMLreturn(o_res);
-}
-
 void aa_fragment_handler(void* clientd,
 			 const uint8_t* buffer,
 			 size_t length,
@@ -778,3 +763,38 @@ CAMLprim value aa_subscription_is_connected( value o_subscription )
   bool result = aeron_subscription_is_connected(subscription);
   CAMLreturn(Val_bool(result));
 }
+
+CAMLprim value aa_image_is_closed( value o_image )
+{
+  CAMLparam1(o_image);
+  aeron_image_t* image = image_val(o_image);
+  bool result = aeron_image_is_closed(image);
+  CAMLreturn(Val_bool(result));
+}
+
+CAMLprim value aa_subscription_is_closed( value o_subscription )
+{
+  CAMLparam1(o_subscription);
+  aeron_subscription_t* subscription = subscription_val(o_subscription);
+  bool result = aeron_subscription_is_closed(subscription);
+  CAMLreturn(Val_bool(result));
+}
+
+CAMLprim value aa_publication_is_closed(value o_publication)
+{
+  CAMLparam1(o_publication);
+  aeron_publication_t* publication = publication_val(o_publication);
+  bool res = aeron_publication_is_closed( publication );
+  CAMLreturn(Val_bool(res));
+}
+
+CAMLprim value aa_exclusive_publication_is_closed(value o_exclusive_publication)
+{
+  CAMLparam1(o_exclusive_publication);
+  aeron_exclusive_publication_t* exclusive_publication =
+    exclusive_publication_val(o_exclusive_publication);
+  bool res = aeron_exclusive_publication_is_closed( exclusive_publication );
+  CAMLreturn(Val_bool(res));
+}
+
+

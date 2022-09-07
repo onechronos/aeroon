@@ -113,6 +113,14 @@ external publication_close : publication -> notification option -> bool
 external publication_is_closed : publication -> bool
   = "aa_publication_is_closed"
 
+external exclusive_publication_is_closed : exclusive_publication -> bool
+  = "aa_exclusive_publication_is_closed"
+
+external subscription_is_closed : subscription -> bool
+  = "aa_subscription_is_closed"
+
+external image_is_closed : image -> bool = "aa_image_is_closed"
+
 type fragment_handler = string (* TODO: -> header *) -> unit
 
 type fragment_assembler
