@@ -18,7 +18,7 @@ type pong_pub_mode =
   | `Pub
   ]
 
-let pong_pub_mode : pong_pub_mode = `Pub
+let pong_pub_mode : pong_pub_mode = `XPub
 
 open Aeron.Raw
 
@@ -218,28 +218,39 @@ let pong () =
       in
       print_endline "x-pub exclusive_publication";
 
-      fun msg ->
-        (match exclusive_publication_offer exclusive_publication msg with
+      let rec offer msg =
+        match exclusive_publication_offer exclusive_publication msg with
+        | Ok 0 | Error Admin_action ->
+          idle_strategy_busy_spinning_idle 0 0;
+          offer msg
         | Ok position ->
-          Printf.printf "p=%d\n%!" position;
-          assert (exclusive_publication_is_connected exclusive_publication);
-          assert (position >= 0)
+          assert (position > 0);
+          ()
         | Error code ->
           print_endline (string_of_publication_error code);
-          exit 1)
+          exit 1
+      in
+
+      offer
     | `Pub ->
       let publication = create_publication client pong_canal in
       print_endline "pub publication";
 
-      fun msg ->
-        (match publication_offer publication msg with
+      let rec offer msg =
+        match publication_offer publication msg with
+        | Ok 0 | Error Admin_action ->
+          idle_strategy_busy_spinning_idle 0 0;
+          offer msg
         | Ok position ->
-          Printf.printf "p=%d\n%!" position;
-          assert (publication_is_connected publication);
-          assert (position >= 0)
+          assert (position > 0);
+          ()
         | Error code ->
           print_endline (string_of_publication_error code);
-          exit 1)
+          print_endline (errmsg ());
+          exit 1
+      in
+
+      offer
   in
 
   if use_image then (
