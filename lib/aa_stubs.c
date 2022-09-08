@@ -29,7 +29,6 @@
 #define image_val(v)                           (*((aeron_image_t                           **) Data_custom_val(v)))
 #define fragment_assembler_val(v)              (*((aeron_fragment_assembler_t              **) Data_custom_val(v)))
 #define image_fragment_assembler_val(v)        (*((aeron_image_fragment_assembler_t        **) Data_custom_val(v)))
-#define buffer_claim_val(v)                    (*((aeron_buffer_claim_t                    **) Data_custom_val(v)))
 
 CAMLprim value aa_version_major(value _unit)
 {
@@ -93,16 +92,16 @@ CAMLprim value aa_epoch_clock(value _unit)
   CAMLreturn(Val_int( aeron_epoch_clock() ) );
 }
 
-void aa_context_close(value o_context)
+CAMLprim value aa_context_close(value o_context)
 {
   CAMLparam1(o_context);
   aeron_context_t* context = context_val(o_context);
   int err = aeron_context_close(context);
   if ( err == 0 ) {
-    return;
+    CAMLreturn(Val_bool(true));
   }
   else if ( err == -1 ) {
-    caml_failwith("aa.context_close");
+    CAMLreturn(Val_bool(false));
   }
   else {
     assert(false);

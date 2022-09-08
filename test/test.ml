@@ -154,7 +154,7 @@ let () =
   Gc.finalise
     (fun c ->
       print_endline "finalizing context";
-      context_close c;
+      ignore (context_close c);
       is_context_closed := true)
     ctx;
 

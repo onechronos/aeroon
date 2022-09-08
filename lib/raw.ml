@@ -20,7 +20,7 @@ type client
 
 external context_init : unit -> context = "aa_context_init"
 
-external context_close : context -> unit = "aa_context_close"
+external context_close : context -> bool = "aa_context_close"
 
 external init : context -> client = "aa_init"
 

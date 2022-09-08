@@ -30,7 +30,7 @@ let context_and_client () =
 
 let cleanup ctx client =
   close client;
-  context_close ctx
+  ignore (context_close ctx)
 
 let create_subscription client (uri, stream_id) =
   match async_add_subscription client uri stream_id None None with
