@@ -169,5 +169,11 @@ external subscription_image_at_index : subscription -> int -> image option
 external subscription_is_connected : subscription -> bool
   = "aa_subscription_is_connected"
 
+external publication_is_connected : publication -> bool
+  = "aa_publication_is_connected"
+
+external exclusive_publication_is_connected : exclusive_publication -> bool
+  = "aa_exclusive_publication_is_connected"
+
 external exclusive_publication_try_claim :
   exclusive_publication -> string -> bool = "aa_exclusive_publication_try_claim"

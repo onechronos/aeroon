@@ -12,6 +12,14 @@ let fragment_count_limit = 10
 
 let use_image = false
 
+type pong_pub_mode =
+  [ `TryClaim
+  | `XPub
+  | `Pub
+  ]
+
+let pong_pub_mode : pong_pub_mode = `Pub
+
 open Aeron.Raw
 
 let context_and_client () =
@@ -191,15 +199,47 @@ let pong () =
   let subscription = create_subscription client ping_canal in
   print_endline "have subscription";
 
-  let exclusive_publication = create_exclusive_publication client pong_canal in
-  print_endline "have exclusive_publication";
-  flush stdout;
-
   let n = ref 0 in
-  let send msg =
-    assert (exclusive_publication_try_claim exclusive_publication msg);
-    incr n;
-    if !n mod 1000 = 0 then Printf.printf "n=%d\n%!" !n
+  let send =
+    match pong_pub_mode with
+    | `TryClaim ->
+      let exclusive_publication =
+        create_exclusive_publication client pong_canal
+      in
+      print_endline "try-claim exclusive_publication";
+
+      fun msg ->
+        assert (exclusive_publication_try_claim exclusive_publication msg);
+        incr n;
+        if !n mod 1000 = 0 then Printf.printf "n=%d\n%!" !n
+    | `XPub ->
+      let exclusive_publication =
+        create_exclusive_publication client pong_canal
+      in
+      print_endline "x-pub exclusive_publication";
+
+      fun msg ->
+        (match exclusive_publication_offer exclusive_publication msg with
+        | Ok position ->
+          Printf.printf "p=%d\n%!" position;
+          assert (exclusive_publication_is_connected exclusive_publication);
+          assert (position >= 0)
+        | Error code ->
+          print_endline (string_of_publication_error code);
+          exit 1)
+    | `Pub ->
+      let publication = create_publication client pong_canal in
+      print_endline "pub publication";
+
+      fun msg ->
+        (match publication_offer publication msg with
+        | Ok position ->
+          Printf.printf "p=%d\n%!" position;
+          assert (publication_is_connected publication);
+          assert (position >= 0)
+        | Error code ->
+          print_endline (string_of_publication_error code);
+          exit 1)
   in
 
   if use_image then (

@@ -779,6 +779,23 @@ CAMLprim value aa_subscription_is_connected( value o_subscription )
   CAMLreturn(Val_bool(result));
 }
 
+CAMLprim value aa_publication_is_connected( value o_publication )
+{
+  CAMLparam1(o_publication);
+  aeron_publication_t* publication = publication_val(o_publication);
+  bool result = aeron_publication_is_connected(publication);
+  CAMLreturn(Val_bool(result));
+}
+
+CAMLprim value aa_exclusive_publication_is_connected( value o_exclusive_publication )
+{
+  CAMLparam1(o_exclusive_publication);
+  aeron_exclusive_publication_t* exclusive_publication =
+    exclusive_publication_val(o_exclusive_publication);
+  bool result = aeron_exclusive_publication_is_connected(exclusive_publication);
+  CAMLreturn(Val_bool(result));
+}
+
 CAMLprim value aa_image_is_closed( value o_image )
 {
   CAMLparam1(o_image);
