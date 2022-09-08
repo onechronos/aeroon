@@ -465,15 +465,15 @@ CAMLprim value publication_result(int64_t res)
   CAMLparam0 ();
   CAMLlocal1( o_res );
 
-  o_res = caml_alloc(1, 0);
-
   if ( res >= 0L ) {
     // Ok position
+    o_res = caml_alloc(1, 0);
     Store_field( o_res, 0, Val_int((int)res) );
   }
   else {
     // Error code
-    Store_field( o_res, 1, publication_error_code(res) );
+    o_res = caml_alloc(1, 1);
+    Store_field( o_res, 0, publication_error_code(res) );
   }
   CAMLreturn( o_res );
 }
@@ -489,6 +489,7 @@ CAMLprim value aa_publication_offer(value o_publication, value o_buffer)
 
   // note cast of result, and non-use of aeron_reserved_value_supplier
   int64_t res = aeron_publication_offer( publication, buffer, length, NULL, NULL );
+
   CAMLreturn(publication_result(res));
 }
 
@@ -628,11 +629,12 @@ CAMLprim value aa_image_fragment_assembler_create( value o_delegate )
   caml_register_global_root(cb);
   void* clientd = (void*)cb;
   int res = aeron_image_fragment_assembler_create( &image_fragment_assembler,
-					     aa_fragment_handler,
-					     clientd );
+						   aa_fragment_handler,
+						   clientd );
   if ( res == 0 ) {
     // Some image_fragment_assembler
-    o_image_fragment_assembler = caml_alloc_small( sizeof(aeron_image_fragment_assembler_t*), Abstract_tag);
+    o_image_fragment_assembler =
+      caml_alloc_small( sizeof(aeron_image_fragment_assembler_t*), Abstract_tag);
     image_fragment_assembler_val(o_image_fragment_assembler) = image_fragment_assembler;
     o_res = caml_alloc_some( o_image_fragment_assembler );
   }
@@ -828,5 +830,4 @@ CAMLprim value aa_exclusive_publication_is_closed(value o_exclusive_publication)
   bool res = aeron_exclusive_publication_is_closed( exclusive_publication );
   CAMLreturn(Val_bool(res));
 }
-
 
