@@ -76,6 +76,15 @@ let publish () =
       poll ()
   in
 
+  let rec connect () =
+    if not (publication_is_connected publication) then (
+      print_endline "publication not connected; trying again";
+      Unix.sleep 1;
+      connect ()
+    )
+  in
+  connect ();
+
   let msg =
     "This is a test of the emergency broadcast system. This is only a test."
   in
