@@ -5,10 +5,14 @@ let uri = "aeron:udp?endpoint=localhost:20121"
 let stream_id = 1001
 
 let context_and_client () =
-  let ctx = context_init () in
-  let client = init ctx in
-  start client;
-  ctx, client
+  match context_init () with
+  | None -> failwith "context_init"
+  | Some ctx ->
+    (match init ctx with
+    | None -> failwith "init"
+    | Some client ->
+      start client;
+      ctx, client)
 
 let cleanup ctx client =
   ignore (close client);

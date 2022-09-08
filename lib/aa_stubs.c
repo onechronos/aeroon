@@ -124,44 +124,44 @@ CAMLprim value aa_close(value o_client)
   }
 }
 
-CAMLprim value aa_context_init(value x0)
+CAMLprim value aa_context_init(value _unit)
 {
-  CAMLparam1(x0);
-  CAMLlocal1(res);
+  CAMLparam1(_unit);
+  CAMLlocal1(o_context);
 
-  aeron_context_t* y0 = NULL;
-  int y1 = aeron_context_init(&y0);
+  aeron_context_t* context = NULL;
+  int res = aeron_context_init(&context);
 
-  if ( y1 == 0 ) {
-    res = caml_alloc_small( sizeof(aeron_context_t*), Abstract_tag);
-    assert(y0 != NULL);
-    context_val(res) = y0;
-    CAMLreturn(res);
+  if ( res == 0 ) {
+    o_context = caml_alloc_small( sizeof(aeron_context_t*), Abstract_tag);
+    assert(context != NULL);
+    context_val(o_context) = context;
+    CAMLreturn(caml_alloc_some(o_context));
   }
-  else if ( y1 < 0 ) {
-    caml_failwith("aa.context_init");
+  else if ( res < 0 ) {
+    CAMLreturn(Val_none);
   }
   else {
     assert(false);
   }
 }
 
-CAMLprim value aa_init(value x0)
+CAMLprim value aa_init(value o_context)
 {
-  CAMLparam1(x0);
-  CAMLlocal1(res);
+  CAMLparam1(o_context);
+  CAMLlocal1(o_client);
 
-  aeron_context_t* ctx = context_val(x0);
+  aeron_context_t* ctx = context_val(o_context);
   aeron_t *client = NULL;
   int err = aeron_init(&client, ctx);
 
   if ( err == 0 ) {
-    res = caml_alloc_small( sizeof(aeron_t*), Abstract_tag);
-    client_val(res) = client;
-    CAMLreturn(res);
+    o_client = caml_alloc_small( sizeof(aeron_t*), Abstract_tag);
+    client_val(o_client) = client;
+    CAMLreturn(caml_alloc_some(o_client));
   }
   else if ( err < 0 ) {
-    caml_failwith("aa.init");
+    CAMLreturn(Val_none);
   }
   else {
     assert(false);

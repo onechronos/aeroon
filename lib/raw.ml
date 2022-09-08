@@ -18,11 +18,11 @@ type context
 
 type client
 
-external context_init : unit -> context = "aa_context_init"
+external context_init : unit -> context option = "aa_context_init"
 
 external context_close : context -> bool = "aa_context_close"
 
-external init : context -> client = "aa_init"
+external init : context -> client option = "aa_init"
 
 external close : client -> bool = "aa_close"
 

@@ -15,9 +15,16 @@ let () =
   let full = version_full () in
   Printf.printf "version: %d.%d.%d %s\n%!" major minor patch full;
 
-  let ctx = context_init () in
-  let client = init ctx in
-  start client;
+  let ctx, client =
+    match context_init () with
+    | None -> failwith "context_init"
+    | Some ctx ->
+      (match init ctx with
+      | None -> failwith "init"
+      | Some client ->
+        start client;
+        ctx, client)
+  in
   print_endline "started!";
 
   let uri = "aeron:udp?endpoint=localhost:20121" in
