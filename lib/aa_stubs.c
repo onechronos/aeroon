@@ -108,16 +108,16 @@ CAMLprim value aa_context_close(value o_context)
   }
 }
 
-void aa_close(value o_client)
+CAMLprim value aa_close(value o_client)
 {
   CAMLparam1(o_client);
   aeron_t* client = client_val(o_client);
   int err = aeron_close(client);
   if ( err == 0 ) {
-    return;
+    CAMLreturn(Val_bool(true));
   }
   else if ( err == -1 ) {
-    caml_failwith("aa.close");
+    CAMLreturn(Val_bool(false));
   }
   else {
     assert(false);

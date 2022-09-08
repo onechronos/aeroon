@@ -161,7 +161,7 @@ let () =
   Gc.finalise
     (fun c ->
       print_endline "finalizing client";
-      close c;
+      ignore (close c);
       is_client_closed := true)
     client;
 

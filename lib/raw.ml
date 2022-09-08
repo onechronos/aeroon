@@ -24,7 +24,7 @@ external context_close : context -> bool = "aa_context_close"
 
 external init : context -> client = "aa_init"
 
-external close : client -> unit = "aa_close"
+external close : client -> bool = "aa_close"
 
 external start : client -> unit = "aa_start"
 

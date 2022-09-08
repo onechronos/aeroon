@@ -29,7 +29,7 @@ let context_and_client () =
   ctx, client
 
 let cleanup ctx client =
-  close client;
+  ignore (close client);
   ignore (context_close ctx)
 
 let create_subscription client (uri, stream_id) =

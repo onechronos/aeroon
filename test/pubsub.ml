@@ -11,7 +11,7 @@ let context_and_client () =
   ctx, client
 
 let cleanup ctx client =
-  close client;
+  ignore (close client);
   context_close ctx
 
 let subscribe () =
