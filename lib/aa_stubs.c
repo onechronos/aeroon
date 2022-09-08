@@ -582,28 +582,58 @@ void aa_fragment_handler(void* clientd,
   CAMLreturn0;
 }
 
+typedef struct _fragment_assembler_z {
+  value* cb;
+  aeron_fragment_assembler_t* a;
+} fragment_assembler_z;
+
+#define fragment_assembler_z_val(v) ((fragment_assembler_z*) Data_custom_val(v))
+
+void fragment_assembler_z_fini(value o_fragment_assembler)
+{
+  CAMLparam1(o_fragment_assembler);
+  fragment_assembler_z* fragment_assembler = fragment_assembler_z_val(o_fragment_assembler);
+  caml_remove_global_root(fragment_assembler->cb);
+  free(fragment_assembler->cb);
+  // open question, should we do this???
+  aeron_fragment_assembler_delete(fragment_assembler->a);
+}
+
+static struct custom_operations fragment_assembler_z_ops =
+  {
+   .identifier = "aa.fragment_assembler_z",
+   .finalize = fragment_assembler_z_fini,
+   .compare = custom_compare_default,
+   .hash = custom_hash_default,
+   .serialize = custom_serialize_default,
+   .deserialize = custom_deserialize_default,
+  };
+
 CAMLprim value aa_fragment_assembler_create( value o_delegate )
 {
   CAMLparam1( o_delegate );
   CAMLlocal2( o_fragment_assembler, o_res );
-  aeron_fragment_assembler_t* fragment_assembler = NULL;
-  value* cb = malloc(sizeof(value));
-  printf("o_delegate: %lx\n", o_delegate);
-  *cb = o_delegate;
-  printf("*cb: %lx\n", *cb);
-  caml_register_global_root(cb);
-  void* clientd = (void*)cb;
-  int res = aeron_fragment_assembler_create( &fragment_assembler,
-					     aa_fragment_handler,
-					     clientd );
+  fragment_assembler_z fragment_assembler;
+  aeron_fragment_assembler_t* a;
+  fragment_assembler.cb = malloc(sizeof(value));
+  *fragment_assembler.cb = o_delegate;
+  void* clientd = (void*)fragment_assembler.cb;
+  int res = aeron_fragment_assembler_create( &a, aa_fragment_handler, clientd );
   if ( res == 0 ) {
     // Some fragment_assembler
-    o_fragment_assembler = caml_alloc_small( sizeof(aeron_fragment_assembler_t*), Abstract_tag);
-    fragment_assembler_val(o_fragment_assembler) = fragment_assembler;
+    caml_register_global_root(fragment_assembler.cb);
+    fragment_assembler.a = a;
+    o_fragment_assembler = caml_alloc_custom( &fragment_assembler_z_ops,
+					      sizeof(fragment_assembler_z),
+					      0, 1);
+    memcpy( fragment_assembler_z_val(o_fragment_assembler),
+	    &fragment_assembler,
+	    sizeof(fragment_assembler_z) );
     o_res = caml_alloc_some( o_fragment_assembler );
   }
   else if ( res == -1 ) {
     // None
+    free(fragment_assembler.cb);
     o_res = Val_none;
   }
   else {
@@ -652,11 +682,12 @@ CAMLprim value aa_subscription_poll( value o_subscription,
   CAMLparam3(o_subscription, o_fragment_assembler, o_fragment_limit );
   CAMLlocal1(o_res);
   aeron_subscription_t* subscription = subscription_val(o_subscription);
-  aeron_fragment_assembler_t* fragment_assembler = fragment_assembler_val(o_fragment_assembler);
+  fragment_assembler_z* fragment_assembler = fragment_assembler_z_val(o_fragment_assembler);
+
   size_t fragment_limit = Int_val(o_fragment_limit);
   int res = aeron_subscription_poll( subscription,
 				     aeron_fragment_assembler_handler,
-				     fragment_assembler,
+				     fragment_assembler->a,
 				     fragment_limit );
   if ( res >= 0 ) {
     // Some num_fragments_received
