@@ -4,8 +4,6 @@ let uri = "aeron:udp?endpoint=localhost:20121"
 
 let stream_id = 1001
 
-let pr = Printf.printf
-
 let context_and_client () =
   let ctx = context_init () in
   let client = init ctx in
@@ -34,7 +32,6 @@ let subscribe () =
     in
 
     let fragment_handler msg = Printf.printf "received: %s\n%!" msg in
-    Callback.register "fh" fragment_handler;
 
     let fragment_assembler =
       match fragment_assembler_create fragment_handler with
@@ -90,12 +87,14 @@ let publish () =
     if i < n then (
       let msg = Printf.sprintf "[%d] %s" i msg in
       match publication_offer publication msg with
-      | Ok position ->
-        pr "publication position=%d\n%!" position;
-        Unix.sleepf 1e-6;
+      | Ok _position ->
+        idle_strategy_sleeping_idle 0 0;
         pub n (i + 1)
+      | Error Admin_action ->
+        (* try again *)
+        pub n i
       | Error code ->
-        Printf.printf "exclusive publication offer error=%s\n"
+        Printf.printf "publication offer error=%s\n"
           (string_of_publication_error code);
         exit 1
     )
