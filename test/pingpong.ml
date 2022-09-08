@@ -72,16 +72,18 @@ let create_exclusive_publication client (uri, stream_id) =
   poll ()
 
 let create_publication client (uri, stream_id) =
-  let async = async_add_publication client uri stream_id in
-  let rec poll () =
-    match async_add_publication_poll async with
-    | Ok pub -> pub
-    | TryAgain ->
-      Unix.sleepf 0.1;
-      poll ()
-    | Error -> failwith "pub error"
-  in
-  poll ()
+  match async_add_publication client uri stream_id with
+  | None -> failwith "async_add_publication"
+  | Some async ->
+    let rec poll () =
+      match async_add_publication_poll async with
+      | Ok pub -> pub
+      | TryAgain ->
+        Unix.sleepf 0.1;
+        poll ()
+      | Error -> failwith "pub error"
+    in
+    poll ()
 
 let () = ignore create_publication
 

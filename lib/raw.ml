@@ -37,7 +37,8 @@ external is_closed : client -> bool = "aa_is_closed"
 type async_add_publication
 
 external async_add_publication :
-  client -> string -> int -> async_add_publication = "aa_async_add_publication"
+  client -> string -> int -> async_add_publication option
+  = "aa_async_add_publication"
 
 type publication
 

@@ -31,16 +31,18 @@ let () =
   let stream_id = 1001 in
 
   let publication =
-    let async = async_add_publication client uri stream_id in
-    let rec poll () =
-      match async_add_publication_poll async with
-      | Ok pub -> pub
-      | TryAgain ->
-        print_endline "pub try again";
-        poll ()
-      | Error -> failwith "pub error"
-    in
-    poll ()
+    match async_add_publication client uri stream_id with
+    | None -> failwith "async_add_publication"
+    | Some async ->
+      let rec poll () =
+        match async_add_publication_poll async with
+        | Ok pub -> pub
+        | TryAgain ->
+          print_endline "pub try again";
+          poll ()
+        | Error -> failwith "pub error"
+      in
+      poll ()
   in
   let publication_closed () = print_endline "publication closed" in
   Callback.register "pc" publication_closed;

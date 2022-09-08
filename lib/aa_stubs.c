@@ -227,10 +227,10 @@ CAMLprim value aa_async_add_publication(value o_client, value o_uri, value o_str
   if ( err == 0 ) {
     o_async = caml_alloc_small( sizeof(aeron_async_add_publication_t*), Abstract_tag);
     async_add_publication_val(o_async) = async;
-    CAMLreturn(o_async);
+    CAMLreturn(caml_alloc_some(o_async));
   }
   else if ( err == -1 ) {
-    caml_failwith("aa.async_add_publication");
+    CAMLreturn(Val_none);
   }
   else {
     assert(false);
