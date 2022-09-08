@@ -270,7 +270,7 @@ CAMLprim value aa_async_add_publication_poll(value o_async)
 CAMLprim value aa_async_add_exclusive_publication(value o_client, value o_uri, value o_stream_id)
 {
   CAMLparam3(o_client, o_uri, o_stream_id);
-  CAMLlocal1(res);
+  CAMLlocal1(o_async);
 
   aeron_t* client = client_val( o_client );
   const char* uri = String_val(o_uri);
@@ -278,12 +278,12 @@ CAMLprim value aa_async_add_exclusive_publication(value o_client, value o_uri, v
   aeron_async_add_exclusive_publication_t* async = NULL;
   int err = aeron_async_add_exclusive_publication( &async, client, uri, stream_id );
   if ( err == 0 ) {
-    res = caml_alloc_small( sizeof(aeron_t*), Abstract_tag);
-    async_add_exclusive_publication_val(res) = async;
-    CAMLreturn(res);
+    o_async = caml_alloc_small( sizeof(aeron_t*), Abstract_tag);
+    async_add_exclusive_publication_val(o_async) = async;
+    CAMLreturn(caml_alloc_some(o_async));
   }
   else if ( err == -1 ) {
-    caml_failwith("aa.async_add_exclusive_publication");
+    CAMLreturn(Val_none);
   }
   else {
     assert(false);

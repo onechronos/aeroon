@@ -56,7 +56,7 @@ external async_add_publication_poll :
 type async_add_exclusive_publication
 
 external async_add_exclusive_publication :
-  client -> string -> int -> async_add_exclusive_publication
+  client -> string -> int -> async_add_exclusive_publication option
   = "aa_async_add_exclusive_publication"
 
 type exclusive_publication

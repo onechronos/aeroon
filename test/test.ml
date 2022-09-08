@@ -48,16 +48,18 @@ let () =
   Callback.register "pc" publication_closed;
 
   let exclusive_publication =
-    let async = async_add_exclusive_publication client uri stream_id in
-    let rec poll () =
-      match async_add_exclusive_publication_poll async with
-      | Ok x_pub -> x_pub
-      | TryAgain ->
-        print_endline "x-pub try again";
-        poll ()
-      | Error -> failwith "x-pub error"
-    in
-    poll ()
+    match async_add_exclusive_publication client uri stream_id with
+    | None -> failwith "async_add_exclusive_publication"
+    | Some async ->
+      let rec poll () =
+        match async_add_exclusive_publication_poll async with
+        | Ok x_pub -> x_pub
+        | TryAgain ->
+          print_endline "x-pub try again";
+          poll ()
+        | Error -> failwith "x-pub error"
+      in
+      poll ()
   in
 
   let subscription =
