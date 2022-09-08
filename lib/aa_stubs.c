@@ -98,10 +98,10 @@ CAMLprim value aa_context_close(value o_context)
   aeron_context_t* context = context_val(o_context);
   int err = aeron_context_close(context);
   if ( err == 0 ) {
-    CAMLreturn(Val_bool(true));
+    CAMLreturn(Val_true);
   }
   else if ( err == -1 ) {
-    CAMLreturn(Val_bool(false));
+    CAMLreturn(Val_false);
   }
   else {
     assert(false);
@@ -114,10 +114,10 @@ CAMLprim value aa_close(value o_client)
   aeron_t* client = client_val(o_client);
   int err = aeron_close(client);
   if ( err == 0 ) {
-    CAMLreturn(Val_bool(true));
+    CAMLreturn(Val_true);
   }
   else if ( err == -1 ) {
-    CAMLreturn(Val_bool(false));
+    CAMLreturn(Val_false);
   }
   else {
     assert(false);
@@ -524,17 +524,15 @@ CAMLprim value aa_exclusive_publication_try_claim( value o_exclusive_publication
   
   memcpy(buffer_claim.data, buffer, length);
   int err = aeron_buffer_claim_commit(&buffer_claim);
-  bool res;
   if ( err == 0 ) {
-    res = true;
+    CAMLreturn(Val_true);
   }
   else if ( err == -1 ) {
-    res = false;
+    CAMLreturn(Val_false);
   }
   else {
     assert(false);
   }
-  CAMLreturn(Val_bool(res));
 }
 
 void aa_notification(void* clientd)
@@ -561,15 +559,14 @@ CAMLprim value aa_publication_close(value o_publication, value o_on_close_comple
   }
   int res = aeron_publication_close( publication, aa_notification, on_close_complete );
   if (res == 0) {
-    o_res = Val_bool(true);
+    CAMLreturn(Val_true);
   }
   else if ( res == -1 ) {
-    o_res = Val_bool(false);
+    CAMLreturn(Val_false);
   }
   else {
     assert(false);
   }
-  CAMLreturn(o_res);
 }
 
 void aa_fragment_handler(void* clientd,
@@ -817,8 +814,8 @@ CAMLprim value aa_publication_is_closed(value o_publication)
 {
   CAMLparam1(o_publication);
   aeron_publication_t* publication = publication_val(o_publication);
-  bool res = aeron_publication_is_closed( publication );
-  CAMLreturn(Val_bool(res));
+  bool result = aeron_publication_is_closed( publication );
+  CAMLreturn(Val_bool(result));
 }
 
 CAMLprim value aa_exclusive_publication_is_closed(value o_exclusive_publication)
@@ -826,7 +823,7 @@ CAMLprim value aa_exclusive_publication_is_closed(value o_exclusive_publication)
   CAMLparam1(o_exclusive_publication);
   aeron_exclusive_publication_t* exclusive_publication =
     exclusive_publication_val(o_exclusive_publication);
-  bool res = aeron_exclusive_publication_is_closed( exclusive_publication );
-  CAMLreturn(Val_bool(res));
+  bool result = aeron_exclusive_publication_is_closed( exclusive_publication );
+  CAMLreturn(Val_bool(result));
 }
 
