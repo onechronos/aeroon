@@ -8,9 +8,11 @@ let num_measured_messages = 10_000_000
 
 let num_warm_up_messages = 100_000
 
-open Aeron.Raw
-
 let fragment_count_limit = 10
+
+let use_image = false
+
+open Aeron.Raw
 
 let context_and_client () =
   let ctx = context_init () in
@@ -185,7 +187,6 @@ let ping =
     send_ping_and_recv_pong publication image
 
 let pong () =
-  let use_image = false in
   let context, client = context_and_client () in
   let subscription = create_subscription client ping_canal in
   print_endline "have subscription";
