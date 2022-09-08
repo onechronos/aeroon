@@ -29,7 +29,7 @@ let context_and_client () =
     (match init ctx with
     | None -> failwith "init"
     | Some client ->
-      start client;
+      assert (start client);
       ctx, client)
 
 let cleanup ctx client =

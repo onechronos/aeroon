@@ -26,7 +26,7 @@ external init : context -> client option = "aa_init"
 
 external close : client -> bool = "aa_close"
 
-external start : client -> unit = "aa_start"
+external start : client -> bool = "aa_start"
 
 external main_do_work : client -> int = "aa_main_do_work"
 

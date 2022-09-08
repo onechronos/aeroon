@@ -22,7 +22,7 @@ let () =
       (match init ctx with
       | None -> failwith "init"
       | Some client ->
-        start client;
+        assert (start client);
         ctx, client)
   in
   print_endline "started!";

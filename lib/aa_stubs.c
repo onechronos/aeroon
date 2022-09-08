@@ -176,10 +176,10 @@ CAMLprim value aa_start(value o_client)
   int err = aeron_start(client);
 
   if ( err == 0 ) {
-    CAMLreturn(Val_unit);
+    CAMLreturn(Val_true);
   }
   else if ( err < 0 ) {
-    caml_failwith("aa.start");
+    CAMLreturn(Val_false);
   }
   else {
     assert(false);
