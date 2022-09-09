@@ -174,3 +174,6 @@ external exclusive_publication_is_connected : exclusive_publication -> bool
 
 external exclusive_publication_try_claim :
   exclusive_publication -> string -> bool = "aa_exclusive_publication_try_claim"
+
+external subscription_image_release : subscription -> image -> bool
+  = "aa_subscription_image_release"

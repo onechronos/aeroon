@@ -160,35 +160,40 @@ let run () =
   | None -> failwith "failed to poll image"
   | Some n -> Printf.printf "polled %d fragments\n" n);
 
-  let is_client_closed = ref false in
-  let is_context_closed = ref false in
-
-  Gc.finalise
-    (fun pub ->
-      if !is_client_closed || !is_context_closed then
-        print_endline "client or context already closed"
-      else if publication_is_closed pub then
-        print_endline "publication already closed"
-      else
-        Printf.printf "publication close %s\n%!"
-          (match publication_close pub with
-          | true -> "success"
-          | false -> "failure"))
-    publication;
+  let context_closed = ref false in
+  let client_closed = ref false in
 
   Gc.finalise
     (fun c ->
       print_endline "finalizing context";
       ignore (context_close c);
-      is_context_closed := true)
+      context_closed := true)
     ctx;
 
   Gc.finalise
     (fun c ->
       print_endline "finalizing client";
-      ignore (close c);
-      is_client_closed := true)
+      if not !context_closed then ignore (close c);
+      client_closed := true)
     client;
+
+  Gc.finalise
+    (fun p ->
+      print_endline "finalizing publication";
+      if not !client_closed then ignore (publication_close p))
+    publication;
+
+  Gc.finalise
+    (fun s ->
+      print_endline "finalizing subscription";
+      if not !client_closed then ignore (subscription_close s))
+    subscription;
+
+  Gc.finalise
+    (fun xp ->
+      print_endline "finalizing exclusive_publication";
+      if not !client_closed then ignore (exclusive_publication_close xp))
+    exclusive_publication;
 
   ()
 

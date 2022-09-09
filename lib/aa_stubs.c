@@ -575,22 +575,26 @@ typedef struct _image_fragment_assembler_z {
 void fragment_assembler_z_fini(value o_fragment_assembler)
 {
   // CAMLparam1(o_fragment_assembler); <-- don't do this!
-  printf("%s %d\n", __FUNCTION__, __LINE__ ); fflush(stdout);
   fragment_assembler_z* fragment_assembler =
     fragment_assembler_z_val(o_fragment_assembler);
   caml_remove_global_root(fragment_assembler->cb);
   free(fragment_assembler->cb);
+  // sample clients seem to suggest that this is safe even after a
+  // client and context are closed, so we don't bother to check the
+  // status of the client and context here.
   aeron_fragment_assembler_delete(fragment_assembler->a);
 }
 
 void image_fragment_assembler_z_fini(value o_image_fragment_assembler)
 {
   // CAMLparam1(o_image_fragment_assembler); <-- don't do this!
-  printf("%s %d\n", __FUNCTION__, __LINE__ ); fflush(stdout);
   image_fragment_assembler_z* image_fragment_assembler =
     image_fragment_assembler_z_val(o_image_fragment_assembler);
   caml_remove_global_root(image_fragment_assembler->cb);
   free(image_fragment_assembler->cb);
+  // sample clients seem to suggest that this is safe even after a
+  // client and context are closed, so we don't bother to check the
+  // status of the client and context here.
   aeron_image_fragment_assembler_delete(image_fragment_assembler->a);
 }
 
@@ -867,3 +871,20 @@ CAMLprim value aa_exclusive_publication_is_closed(value o_exclusive_publication)
   CAMLreturn(Val_bool(result));
 }
 
+CAMLprim value aa_subscription_image_release(value o_subscription, value o_image)
+{
+  CAMLparam2(o_subscription, o_image);
+  aeron_subscription_t* subscription = subscription_val(o_subscription);
+  aeron_image_t* image = image_val(o_image);
+  int res = aeron_subscription_image_release( subscription, image );
+  if ( res == 0 ) {
+    CAMLreturn(Val_true);
+  }
+  else if ( res == -1 ) {
+    CAMLreturn(Val_false);
+  }
+  else {
+    assert(false);
+  }
+
+}
