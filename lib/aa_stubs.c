@@ -29,6 +29,7 @@
 #define subscription_val(v)                    (*((aeron_subscription_t                    **) Data_custom_val(v)))
 #define image_val(v)                           (*((aeron_image_t                           **) Data_custom_val(v)))
 
+// version_major : unit -> int
 CAMLprim value aa_version_major(value _unit)
 {
   CAMLparam1(_unit);
@@ -38,6 +39,7 @@ CAMLprim value aa_version_major(value _unit)
   CAMLreturn(o_res);
 }
 
+// version_minor : unit -> int
 CAMLprim value aa_version_minor(value _unit)
 {
   CAMLparam1(_unit);
@@ -47,6 +49,7 @@ CAMLprim value aa_version_minor(value _unit)
   CAMLreturn(o_res);
 }
 
+// version_patch : unit -> int
 CAMLprim value aa_version_patch(value _unit)
 {
   CAMLparam1(_unit);
@@ -56,6 +59,7 @@ CAMLprim value aa_version_patch(value _unit)
   CAMLreturn(o_res);
 }
 
+// version_full : unit -> string
 CAMLprim value aa_version_full(value _unit)
 {
   CAMLparam1(_unit);
@@ -65,6 +69,7 @@ CAMLprim value aa_version_full(value _unit)
   CAMLreturn(o_res);
 }
 
+// errmsg : unit -> string
 CAMLprim value aa_errmsg(value _unit)
 {
   CAMLparam1(_unit);
@@ -73,24 +78,28 @@ CAMLprim value aa_errmsg(value _unit)
   CAMLreturn(o_res);
 }
 
+// errcode : unit -> int
 CAMLprim value aa_errcode(value _unit)
 {
   CAMLparam1(_unit);
   CAMLreturn(Val_int( aeron_errcode() ) );
 }
 
+// nano_clock : unit -> int
 CAMLprim value aa_nano_clock(value _unit)
 {
   CAMLparam1(_unit);
   CAMLreturn(Val_int( aeron_nano_clock() ) );
 }
 
+// epoch_clock : unit -> int
 CAMLprim value aa_epoch_clock(value _unit)
 {
   CAMLparam1(_unit);
   CAMLreturn(Val_int( aeron_epoch_clock() ) );
 }
 
+// context_close : context -> bool
 CAMLprim value aa_context_close(value o_context)
 {
   CAMLparam1(o_context);
@@ -107,6 +116,7 @@ CAMLprim value aa_context_close(value o_context)
   }
 }
 
+// close : client -> bool
 CAMLprim value aa_close(value o_client)
 {
   CAMLparam1(o_client);
@@ -123,6 +133,7 @@ CAMLprim value aa_close(value o_client)
   }
 }
 
+// context_init : unit -> context option
 CAMLprim value aa_context_init(value _unit)
 {
   CAMLparam1(_unit);
@@ -145,6 +156,7 @@ CAMLprim value aa_context_init(value _unit)
   }
 }
 
+// init : context -> client optoin
 CAMLprim value aa_init(value o_context)
 {
   CAMLparam1(o_context);
@@ -167,6 +179,7 @@ CAMLprim value aa_init(value o_context)
   }
 }
 
+// start : client -> bool
 CAMLprim value aa_start(value o_client)
 {
   CAMLparam1(o_client);
@@ -185,6 +198,7 @@ CAMLprim value aa_start(value o_client)
   }
 }
 
+// main_do_work : client -> int
 CAMLprim value aa_main_do_work(value o_client)
 {
   CAMLparam1(o_client);
@@ -193,6 +207,7 @@ CAMLprim value aa_main_do_work(value o_client)
   CAMLreturn(Val_int(err));
 }
 
+// main_idle_strategy : client -> init -> unit
 CAMLprim value aa_main_idle_strategy(value o_client, value o_work_count)
 {
   CAMLparam2(o_client, o_work_count);
@@ -204,6 +219,7 @@ CAMLprim value aa_main_idle_strategy(value o_client, value o_work_count)
   CAMLreturn(Val_unit);
 }
 
+// is_closed : client -> bool
 CAMLprim value aa_is_closed(value o_client)
 {
   CAMLparam1(o_client);
@@ -213,6 +229,7 @@ CAMLprim value aa_is_closed(value o_client)
   CAMLreturn(Val_bool(result));
 }
 
+// async_add_publication : client -> string -> int -> async_add_publication option
 CAMLprim value aa_async_add_publication(value o_client, value o_uri, value o_stream_id)
 {
   CAMLparam3(o_client, o_uri, o_stream_id);
@@ -236,6 +253,7 @@ CAMLprim value aa_async_add_publication(value o_client, value o_uri, value o_str
   }
 }
 
+// async_add_publication_poll : async_add_publication -> publication poll_result
 CAMLprim value aa_async_add_publication_poll(value o_async)
 {
   CAMLparam1(o_async);
@@ -266,6 +284,8 @@ CAMLprim value aa_async_add_publication_poll(value o_async)
   CAMLreturn(o_res);
 }
 
+// async_add_exclusive_publication : client -> string -> int ->
+//   async_add_exclusive_publication option
 CAMLprim value aa_async_add_exclusive_publication(value o_client, value o_uri, value o_stream_id)
 {
   CAMLparam3(o_client, o_uri, o_stream_id);
@@ -289,6 +309,8 @@ CAMLprim value aa_async_add_exclusive_publication(value o_client, value o_uri, v
   }
 }
 
+// async_add_exclusive_publication_poll : async_add_exclusive_publication ->
+//   exclusive_publication poll_result
 CAMLprim value aa_async_add_exclusive_publication_poll(value o_async)
 {
   CAMLparam1(o_async);
@@ -319,11 +341,12 @@ CAMLprim value aa_async_add_exclusive_publication_poll(value o_async)
   CAMLreturn(o_res);
 }
 
-// note: for simplicity, we ignore on_available_image and ignore
-// on_unavailable_image callbacks
+// async_add_subscription : client -> string -> int -> async_add_subscription option
 CAMLprim value aa_async_add_subscription(value o_client,
 					 value o_uri,
 					 value o_stream_id )
+// note: for simplicity, we ignore on_available_image and ignore
+// on_unavailable_image callbacks
 {
   CAMLparam3(o_client, o_uri, o_stream_id );
   CAMLlocal2(o_async, o_res);
@@ -353,6 +376,7 @@ CAMLprim value aa_async_add_subscription(value o_client,
   CAMLreturn(o_res);
 }
 
+// async_add_subscription_poll : async_add_subscription -> subscription poll_result
 CAMLprim value aa_async_add_subscription_poll(value o_async)
 {
   CAMLparam1(o_async);
@@ -384,7 +408,7 @@ CAMLprim value aa_async_add_subscription_poll(value o_async)
 }
 
 
-// returns publication_error
+// publication_error_code : int -> publication_error
 CAMLprim value publication_error_code(int64_t res)
 {
   CAMLparam0 ();
@@ -415,7 +439,7 @@ CAMLprim value publication_error_code(int64_t res)
 
 }
 
-// returns Ok of int | Error of publication_error
+// publication_result : int -> (int, publication_error) result
 CAMLprim value publication_result(int64_t res)
 {
   CAMLparam0 ();
@@ -434,8 +458,9 @@ CAMLprim value publication_result(int64_t res)
   CAMLreturn( o_res );
 }
 
-// here, we do not expose aeron_reserved_value_supplier (and its data)
+// publication_offer : publication -> string -> (int, publication_error) result
 CAMLprim value aa_publication_offer(value o_publication, value o_buffer)
+// here, we do not expose aeron_reserved_value_supplier (and its data)
 {
   CAMLparam2(o_publication, o_buffer);
   CAMLlocal1(o_res);
@@ -449,10 +474,12 @@ CAMLprim value aa_publication_offer(value o_publication, value o_buffer)
   CAMLreturn(publication_result(res));
 }
 
+// exclusive_publication_offer : exclusive_publication -> string ->
+//   (int, publication_error) result
+CAMLprim value aa_exclusive_publication_offer(value o_exclusive_publication, value o_buffer)
 // identical to aa_publication_offer, except that we use
 // aeron_exclusive_publcation_offer instead of aeron_publication_offer
 // essentially: 's/pulication/exclusive_publication/g'
-CAMLprim value aa_exclusive_publication_offer(value o_exclusive_publication, value o_buffer)
 {
   CAMLparam2(o_exclusive_publication, o_buffer);
   aeron_exclusive_publication_t* exclusive_publication = exclusive_publication_val(o_exclusive_publication);
@@ -463,6 +490,7 @@ CAMLprim value aa_exclusive_publication_offer(value o_exclusive_publication, val
   CAMLreturn(publication_result(res));
 }
 
+// exclusive_publication_try_claim : exclusive_publication -> string -> bool
 CAMLprim value aa_exclusive_publication_try_claim( value o_exclusive_publication,
 						   value o_buffer )
 {
@@ -492,6 +520,7 @@ CAMLprim value aa_exclusive_publication_try_claim( value o_exclusive_publication
   }
 }
 
+// subscription_close : subscription -> bool
 CAMLprim value aa_subscription_close(value o_subscription)
 {
   CAMLparam1(o_subscription);
@@ -510,6 +539,7 @@ CAMLprim value aa_subscription_close(value o_subscription)
 }
 
 
+// publication_close : publication -> bool
 CAMLprim value aa_publication_close(value o_publication)
 {
   CAMLparam1(o_publication);
@@ -527,6 +557,7 @@ CAMLprim value aa_publication_close(value o_publication)
   }
 }
 
+// exclusive_publication_close : exclusive_publication -> bool
 CAMLprim value aa_exclusive_publication_close(value o_exclusive_publication)
 {
   CAMLparam1(o_exclusive_publication);
@@ -544,6 +575,7 @@ CAMLprim value aa_exclusive_publication_close(value o_exclusive_publication)
   }
 }
 
+// --not-exposed-- as an OCaml function
 void aa_fragment_handler(void* clientd,
 			 const uint8_t* buffer,
 			 size_t length,
@@ -619,6 +651,7 @@ static struct custom_operations image_fragment_assembler_z_ops =
   };
 
 
+// fragment_assembler_create : (string -> unit) -> fragment_assembler option
 CAMLprim value aa_fragment_assembler_create( value o_delegate )
 {
   CAMLparam1( o_delegate );
@@ -653,6 +686,7 @@ CAMLprim value aa_fragment_assembler_create( value o_delegate )
   CAMLreturn(o_res);
 }
 
+// image_fragment_assembler_create : (string -> unit) -> image_fragment_assembler option
 CAMLprim value aa_image_fragment_assembler_create( value o_delegate )
 {
   CAMLparam1( o_delegate );
@@ -687,6 +721,7 @@ CAMLprim value aa_image_fragment_assembler_create( value o_delegate )
   CAMLreturn(o_res);
 }
 
+// subscription_poll : subscription -> fragment_assembler -> int -> int option
 CAMLprim value aa_subscription_poll( value o_subscription,
 				     // TODO: o_fragment_assembler_handler
 				     value o_fragment_assembler,
@@ -714,11 +749,12 @@ CAMLprim value aa_subscription_poll( value o_subscription,
   CAMLreturn(o_res);
 }
 
-// like subscription_poll, but 's/subscription/image/g'
+// image_poll : image -> image_fragment_assembler -> int -> int option
 CAMLprim value aa_image_poll( value o_image,
 			      // TODO: o_fragment_assembler_handler
 			      value o_image_fragment_assembler,
 			      value o_fragment_limit )
+// like subscription_poll, but 's/subscription/image/g'
 {
   CAMLparam3(o_image, o_image_fragment_assembler, o_fragment_limit );
   CAMLlocal1(o_res);
@@ -742,6 +778,7 @@ CAMLprim value aa_image_poll( value o_image,
   CAMLreturn(o_res);
 }
 
+// idle_strategy_sleeping_idle : int -> int -> unit
 CAMLprim value aa_idle_strategy_sleeping_idle( value o_nanos, value o_work_count )
 {
   CAMLparam2(o_nanos, o_work_count);
@@ -751,6 +788,7 @@ CAMLprim value aa_idle_strategy_sleeping_idle( value o_nanos, value o_work_count
   CAMLreturn(Val_unit);
 }
 
+// idle_strategy_yielding_idle : int -> int -> unit
 CAMLprim value aa_idle_strategy_yielding_idle( value o_nanos, value o_work_count )
 {
   CAMLparam2(o_nanos, o_work_count);
@@ -760,6 +798,7 @@ CAMLprim value aa_idle_strategy_yielding_idle( value o_nanos, value o_work_count
   CAMLreturn(Val_unit);
 }
 
+// idle_strategy_busy_spinning_idle : int -> int -> unit
 CAMLprim value aa_idle_strategy_busy_spinning_idle( value o_nanos, value o_work_count )
 {
   CAMLparam2(o_nanos, o_work_count);
@@ -769,6 +808,7 @@ CAMLprim value aa_idle_strategy_busy_spinning_idle( value o_nanos, value o_work_
   CAMLreturn(Val_unit);
 }
 
+// idle_strategy_noop_idle : int -> int -> unit
 CAMLprim value aa_idle_strategy_noop_idle( value o_nanos, value o_work_count )
 {
   CAMLparam2(o_nanos, o_work_count);
@@ -778,6 +818,7 @@ CAMLprim value aa_idle_strategy_noop_idle( value o_nanos, value o_work_count )
   CAMLreturn(Val_unit);
 }
 
+// idle_strategy_backoff_idle : int -> int -> unit
 CAMLprim value aa_idle_strategy_backoff_idle( value o_nanos, value o_work_count )
 {
   CAMLparam2(o_nanos, o_work_count);
@@ -787,6 +828,7 @@ CAMLprim value aa_idle_strategy_backoff_idle( value o_nanos, value o_work_count 
   CAMLreturn(Val_unit);
 }
 
+// subscription_image_at_index : subscription -> int -> image option
 CAMLprim value aa_subscription_image_at_index( value o_subscription, value o_index )
 {
   CAMLparam2(o_subscription, o_index);
@@ -805,6 +847,7 @@ CAMLprim value aa_subscription_image_at_index( value o_subscription, value o_ind
   CAMLreturn(o_res);
 }  
 
+// image_position : image -> int
 CAMLprim value aa_image_position( value o_image )
 {
   CAMLparam1(o_image);
@@ -813,6 +856,7 @@ CAMLprim value aa_image_position( value o_image )
   CAMLreturn(Val_int(res));
 }
 
+// subscription_is_connected : subscription -> bool
 CAMLprim value aa_subscription_is_connected( value o_subscription )
 {
   CAMLparam1(o_subscription);
@@ -821,6 +865,7 @@ CAMLprim value aa_subscription_is_connected( value o_subscription )
   CAMLreturn(Val_bool(result));
 }
 
+// publication_is_connected : publication -> bool
 CAMLprim value aa_publication_is_connected( value o_publication )
 {
   CAMLparam1(o_publication);
@@ -829,6 +874,7 @@ CAMLprim value aa_publication_is_connected( value o_publication )
   CAMLreturn(Val_bool(result));
 }
 
+// exclusive_publication_is_connected : exclusive_publication -> bool
 CAMLprim value aa_exclusive_publication_is_connected( value o_exclusive_publication )
 {
   CAMLparam1(o_exclusive_publication);
@@ -838,6 +884,7 @@ CAMLprim value aa_exclusive_publication_is_connected( value o_exclusive_publicat
   CAMLreturn(Val_bool(result));
 }
 
+// image_is_closed : image : bool
 CAMLprim value aa_image_is_closed( value o_image )
 {
   CAMLparam1(o_image);
@@ -846,6 +893,7 @@ CAMLprim value aa_image_is_closed( value o_image )
   CAMLreturn(Val_bool(result));
 }
 
+// subscription_is_closed : subscription -> bool
 CAMLprim value aa_subscription_is_closed( value o_subscription )
 {
   CAMLparam1(o_subscription);
@@ -854,6 +902,7 @@ CAMLprim value aa_subscription_is_closed( value o_subscription )
   CAMLreturn(Val_bool(result));
 }
 
+// publication_is_closed : publication -> bool
 CAMLprim value aa_publication_is_closed(value o_publication)
 {
   CAMLparam1(o_publication);
@@ -862,6 +911,7 @@ CAMLprim value aa_publication_is_closed(value o_publication)
   CAMLreturn(Val_bool(result));
 }
 
+// exclusive_publication_is_closed : exclusive_publication -> bool
 CAMLprim value aa_exclusive_publication_is_closed(value o_exclusive_publication)
 {
   CAMLparam1(o_exclusive_publication);
@@ -871,6 +921,7 @@ CAMLprim value aa_exclusive_publication_is_closed(value o_exclusive_publication)
   CAMLreturn(Val_bool(result));
 }
 
+// subscription_image_release : subscription -> image -> bool
 CAMLprim value aa_subscription_image_release(value o_subscription, value o_image)
 {
   CAMLparam2(o_subscription, o_image);
