@@ -10,7 +10,7 @@ let num_warm_up_messages = 100_000
 
 let fragment_count_limit = 10
 
-let use_image = false
+let use_image = true
 
 type pong_pub_mode =
   [ `TryClaim
@@ -37,7 +37,7 @@ let cleanup ctx client =
   ignore (context_close ctx)
 
 let create_subscription client (uri, stream_id) =
-  match async_add_subscription client uri stream_id None None with
+  match async_add_subscription client uri stream_id with
   | None -> failwith "failed to get sub async"
   | Some async ->
     let rec poll () =
@@ -143,15 +143,9 @@ let ping =
     incr n
   in
 
-  let image_fragment_assembler =
-    match image_fragment_assembler_create pong_measuring_handler with
-    | Some image_fragment_assembler -> image_fragment_assembler
-    | None -> failwith "failed to create image fragment assembler"
-  in
-
   let num_messages = num_measured_messages + num_warm_up_messages in
 
-  let send_ping_and_recv_pong publication image =
+  let send_ping_and_recv_pong publication image_fragment_assembler image =
     let rec loop () =
       if !n < num_messages then (
         let now_ns = nano_clock () in
@@ -163,6 +157,10 @@ let ping =
     and send msg =
       match exclusive_publication_offer publication msg with
       | Ok position -> position
+      | Error Admin_action ->
+        print_endline "admin action; trying again";
+        idle_strategy_busy_spinning_idle 0 0;
+        send msg
       | Error code ->
         print_endline (string_of_publication_error code);
         exit 1
@@ -186,11 +184,18 @@ let ping =
 
   fun () ->
     let _context, client = context_and_client () in
+
     let publication = create_exclusive_publication client ping_canal in
     print_endline "have publication";
 
     let subscription = create_subscription client pong_canal in
     print_endline "have subscription";
+
+    let image_fragment_assembler =
+      match image_fragment_assembler_create pong_measuring_handler with
+      | Some image_fragment_assembler -> image_fragment_assembler
+      | None -> failwith "failed to create image fragment assembler"
+    in
 
     let image =
       match subscription_image_at_index subscription 0 with
@@ -200,7 +205,7 @@ let ping =
     print_endline "starting send/recv";
 
     Unix.sleep 1;
-    send_ping_and_recv_pong publication image
+    send_ping_and_recv_pong publication image_fragment_assembler image
 
 let pong () =
   let context, client = context_and_client () in
@@ -254,7 +259,6 @@ let pong () =
           ()
         | Error code ->
           print_endline (string_of_publication_error code);
-          print_endline (errmsg ());
           exit 1
       in
 
@@ -309,9 +313,10 @@ let pong () =
   cleanup context client
 
 let _ =
-  match Sys.argv.(1) with
+  (match Sys.argv.(1) with
   | "ping" -> ping ()
   | "pong" -> pong ()
   | _ ->
     Printf.printf "usage: %s (ping|pong)\n%!" Sys.argv.(0);
-    exit 1
+    exit 1);
+  Gc.compact ()

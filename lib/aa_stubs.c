@@ -9,6 +9,7 @@
 #include <caml/misc.h>
 #include <caml/intext.h>
 #include <caml/fail.h>
+#include <caml/threads.h>
 
 /* C standard library */
 #include <string.h>
@@ -27,8 +28,6 @@
 #define async_add_subscription_val(v)          (*((aeron_async_add_subscription_t          **) Data_custom_val(v)))
 #define subscription_val(v)                    (*((aeron_subscription_t                    **) Data_custom_val(v)))
 #define image_val(v)                           (*((aeron_image_t                           **) Data_custom_val(v)))
-#define fragment_assembler_val(v)              (*((aeron_fragment_assembler_t              **) Data_custom_val(v)))
-#define image_fragment_assembler_val(v)        (*((aeron_image_fragment_assembler_t        **) Data_custom_val(v)))
 
 CAMLprim value aa_version_major(value _unit)
 {
@@ -320,67 +319,25 @@ CAMLprim value aa_async_add_exclusive_publication_poll(value o_async)
   CAMLreturn(o_res);
 }
 
-// callback for either on_available_image_handler or on_unavailable_image_handler.
-// We use an OCaml closure as the Aeron client data (clientd)
-void aa_on_image(void *clientd, aeron_subscription_t *subscription, aeron_image_t *image)
-{
-  CAMLparam0 ();
-  CAMLlocal3( o_subscription, o_image, o_function );
-
-  o_subscription = caml_alloc_small( sizeof(aeron_subscription_t*), Abstract_tag);
-  subscription_val( o_subscription ) = subscription;
-
-  o_image = caml_alloc_small( sizeof(aeron_image_t*), Abstract_tag);
-  image_val( o_image ) = image;
-
-  o_function = (value)clientd;
-  caml_callback2( o_function, o_subscription, o_image );
-  CAMLreturn0;
-}
-
+// note: for simplicity, we ignore on_available_image and ignore
+// on_unavailable_image callbacks
 CAMLprim value aa_async_add_subscription(value o_client,
 					 value o_uri,
-					 value o_stream_id,
-					 value o_on_available_image_opt,
-					 value o_on_unavailable_image_opt)
+					 value o_stream_id )
 {
-  CAMLparam5(o_client, o_uri, o_stream_id, o_on_available_image_opt, o_on_unavailable_image_opt);
-  CAMLlocal4(o_on_available_image, o_on_unavailable_image, o_async, o_res);
+  CAMLparam3(o_client, o_uri, o_stream_id );
+  CAMLlocal2(o_async, o_res);
 
   aeron_t* client = client_val(o_client);
   const char* uri = String_val(o_uri);
   int32_t stream_id = Int_val(o_stream_id);
-
-  // use the OCaml closure as the Aeron clientd (client data)
-  value* on_available_image = NULL; 
-  aeron_on_available_image_t on_available_image_handler = NULL;
-  if ( o_on_available_image_opt != Val_none ) {
-    o_on_available_image = Some_val(o_on_available_image_opt);
-    on_available_image = (value*) malloc(sizeof(value));
-    assert(on_available_image);
-    *on_available_image = o_on_available_image;
-    caml_register_global_root(on_available_image);
-    on_available_image_handler = aa_on_image;
-  }
-
-  void* on_unavailable_image = NULL;
-  aeron_on_unavailable_image_t on_unavailable_image_handler = NULL;
-  if ( o_on_unavailable_image_opt != Val_none ) {
-    o_on_unavailable_image = Some_val(o_on_unavailable_image_opt);
-    on_unavailable_image = (void*)o_on_unavailable_image;
-    caml_register_global_root(&o_on_unavailable_image);
-    on_unavailable_image_handler = aa_on_image;
-  }
 
   aeron_async_add_subscription_t* async = NULL;
   int err = aeron_async_add_subscription( &async,
 					  client,
 					  uri,
 					  stream_id,
-					  on_available_image_handler,
-					  on_available_image,
-					  on_unavailable_image_handler,
-					  on_unavailable_image );
+					  NULL, NULL, NULL, NULL );
   if ( err == 0 ) {
     o_async = caml_alloc_small( sizeof(aeron_async_add_subscription_t*), Abstract_tag);
     async_add_subscription_val( o_async ) = async;
@@ -544,20 +501,11 @@ void aa_notification(void* clientd)
   CAMLreturn0;
 }
 
-CAMLprim value aa_publication_close(value o_publication, value o_on_close_complete_opt)
+CAMLprim value aa_publication_close(value o_publication)
 {
-  CAMLparam2(o_publication, o_on_close_complete_opt);
-  CAMLlocal2(o_on_close_complete, o_res);
+  CAMLparam1(o_publication);
   aeron_publication_t* publication = publication_val(o_publication);
-  void* on_close_complete = NULL;
-  if ( o_on_close_complete_opt != Val_none ) {
-    o_on_close_complete = Some_val(o_on_close_complete_opt);
-    on_close_complete = malloc(sizeof(value));
-    assert(on_close_complete);
-    on_close_complete = (void*)o_on_close_complete;
-    caml_register_global_root(on_close_complete);
-  }
-  int res = aeron_publication_close( publication, aa_notification, on_close_complete );
+  int res = aeron_publication_close( publication, NULL, NULL );
   if (res == 0) {
     CAMLreturn(Val_true);
   }
@@ -576,6 +524,7 @@ void aa_fragment_handler(void* clientd,
 {
   CAMLparam0();
   CAMLlocal3(o_buffer, o_function, o_res);
+  caml_c_thread_register();
   o_buffer = caml_alloc_initialized_string(length, buffer);
   o_function = *((value*) clientd);
   o_res = caml_callback( o_function, o_buffer );
@@ -587,16 +536,35 @@ typedef struct _fragment_assembler_z {
   aeron_fragment_assembler_t* a;
 } fragment_assembler_z;
 
+typedef struct _image_fragment_assembler_z {
+  value* cb;
+  aeron_image_fragment_assembler_t* a;
+} image_fragment_assembler_z;
+
+
 #define fragment_assembler_z_val(v) ((fragment_assembler_z*) Data_custom_val(v))
+#define image_fragment_assembler_z_val(v) ((image_fragment_assembler_z*) Data_custom_val(v))
 
 void fragment_assembler_z_fini(value o_fragment_assembler)
 {
-  CAMLparam1(o_fragment_assembler);
-  fragment_assembler_z* fragment_assembler = fragment_assembler_z_val(o_fragment_assembler);
+  // CAMLparam1(o_fragment_assembler); <-- don't do this!
+  printf("%s %d\n", __FUNCTION__, __LINE__ ); fflush(stdout);
+  fragment_assembler_z* fragment_assembler =
+    fragment_assembler_z_val(o_fragment_assembler);
   caml_remove_global_root(fragment_assembler->cb);
   free(fragment_assembler->cb);
-  // open question, should we do this???
   aeron_fragment_assembler_delete(fragment_assembler->a);
+}
+
+void image_fragment_assembler_z_fini(value o_image_fragment_assembler)
+{
+  // CAMLparam1(o_image_fragment_assembler); <-- don't do this!
+  printf("%s %d\n", __FUNCTION__, __LINE__ ); fflush(stdout);
+  image_fragment_assembler_z* image_fragment_assembler =
+    image_fragment_assembler_z_val(o_image_fragment_assembler);
+  caml_remove_global_root(image_fragment_assembler->cb);
+  free(image_fragment_assembler->cb);
+  aeron_image_fragment_assembler_delete(image_fragment_assembler->a);
 }
 
 static struct custom_operations fragment_assembler_z_ops =
@@ -609,10 +577,22 @@ static struct custom_operations fragment_assembler_z_ops =
    .deserialize = custom_deserialize_default,
   };
 
+static struct custom_operations image_fragment_assembler_z_ops =
+  {
+   .identifier = "aa.image_fragment_assembler_z",
+   .finalize = image_fragment_assembler_z_fini,
+   .compare = custom_compare_default,
+   .hash = custom_hash_default,
+   .serialize = custom_serialize_default,
+   .deserialize = custom_deserialize_default,
+  };
+
+
 CAMLprim value aa_fragment_assembler_create( value o_delegate )
 {
   CAMLparam1( o_delegate );
   CAMLlocal2( o_fragment_assembler, o_res );
+
   fragment_assembler_z fragment_assembler;
   aeron_fragment_assembler_t* a;
   fragment_assembler.cb = malloc(sizeof(value));
@@ -642,30 +622,32 @@ CAMLprim value aa_fragment_assembler_create( value o_delegate )
   CAMLreturn(o_res);
 }
 
-// apply 's/fragment/image_fragment/g' to function aa_fragment_assembler_create
 CAMLprim value aa_image_fragment_assembler_create( value o_delegate )
 {
   CAMLparam1( o_delegate );
   CAMLlocal2( o_image_fragment_assembler, o_res );
-  aeron_image_fragment_assembler_t* image_fragment_assembler = NULL;
-  value* cb = malloc(sizeof(value));
-  printf("o_delegate: %lx\n", o_delegate);
-  *cb = o_delegate;
-  printf("*cb: %lx\n", *cb);
-  caml_register_global_root(cb);
-  void* clientd = (void*)cb;
-  int res = aeron_image_fragment_assembler_create( &image_fragment_assembler,
-						   aa_fragment_handler,
-						   clientd );
+
+  image_fragment_assembler_z image_fragment_assembler;
+  aeron_image_fragment_assembler_t* a;
+  image_fragment_assembler.cb = malloc(sizeof(value));
+  *image_fragment_assembler.cb = o_delegate;
+  void* clientd = (void*)image_fragment_assembler.cb;
+  int res = aeron_image_fragment_assembler_create( &a, aa_fragment_handler, clientd );
   if ( res == 0 ) {
-    // Some image_fragment_assembler
-    o_image_fragment_assembler =
-      caml_alloc_small( sizeof(aeron_image_fragment_assembler_t*), Abstract_tag);
-    image_fragment_assembler_val(o_image_fragment_assembler) = image_fragment_assembler;
+    // Some fragment_assembler
+    caml_register_global_root(image_fragment_assembler.cb);
+    image_fragment_assembler.a = a;
+    o_image_fragment_assembler = caml_alloc_custom( &image_fragment_assembler_z_ops,
+						    sizeof(image_fragment_assembler_z),
+						    0, 1);
+    memcpy( image_fragment_assembler_z_val(o_image_fragment_assembler),
+	    &image_fragment_assembler,
+	    sizeof(image_fragment_assembler_z) );
     o_res = caml_alloc_some( o_image_fragment_assembler );
   }
   else if ( res == -1 ) {
     // None
+    free(image_fragment_assembler.cb);
     o_res = Val_none;
   }
   else {
@@ -710,12 +692,12 @@ CAMLprim value aa_image_poll( value o_image,
   CAMLparam3(o_image, o_image_fragment_assembler, o_fragment_limit );
   CAMLlocal1(o_res);
   aeron_image_t* image = image_val(o_image);
-  aeron_image_fragment_assembler_t* image_fragment_assembler =
-    image_fragment_assembler_val(o_image_fragment_assembler);
+  image_fragment_assembler_z* image_fragment_assembler =
+    image_fragment_assembler_z_val(o_image_fragment_assembler);
   size_t fragment_limit = Int_val(o_fragment_limit);
   int res = aeron_image_poll( image,
 			      aeron_image_fragment_assembler_handler,
-			      image_fragment_assembler,
+			      image_fragment_assembler->a,
 			      fragment_limit );
   if ( res >= 0 ) {
     // Some num_fragments_received

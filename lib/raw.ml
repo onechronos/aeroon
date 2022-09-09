@@ -72,17 +72,11 @@ type subscription
 
 type image
 
-type on_image = subscription -> image -> unit
-
 type async_add_subscription
 
 external async_add_subscription :
-  client ->
-  string ->
-  int ->
-  on_image option ->
-  on_image option ->
-  async_add_subscription option = "aa_async_add_subscription"
+  client -> string -> int -> async_add_subscription option
+  = "aa_async_add_subscription"
 
 type async_add_subscription_poll_result = subscription poll_result
 
@@ -106,10 +100,7 @@ external exclusive_publication_offer :
   exclusive_publication -> string -> (int, publication_error) result
   = "aa_exclusive_publication_offer"
 
-type notification = unit -> unit
-
-external publication_close : publication -> notification option -> bool
-  = "aa_publication_close"
+external publication_close : publication -> bool = "aa_publication_close"
 
 external publication_is_closed : publication -> bool
   = "aa_publication_is_closed"

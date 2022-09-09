@@ -20,7 +20,7 @@ let cleanup ctx client =
 
 let subscribe () =
   let ctx, client = context_and_client () in
-  match async_add_subscription client uri stream_id None None with
+  match async_add_subscription client uri stream_id with
   | None -> failwith "failed to get sub async"
   | Some async ->
     let subscription =
