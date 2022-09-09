@@ -492,20 +492,47 @@ CAMLprim value aa_exclusive_publication_try_claim( value o_exclusive_publication
   }
 }
 
-void aa_notification(void* clientd)
+CAMLprim value aa_subscription_close(value o_subscription)
 {
-  CAMLparam0 ();
-  CAMLlocal1( o_function );
-  o_function = (value)clientd;
-  caml_callback( o_function, Val_unit );
-  CAMLreturn0;
+  CAMLparam1(o_subscription);
+  aeron_subscription_t* subscription =
+    subscription_val(o_subscription);
+  int res = aeron_subscription_close( subscription, NULL, NULL );
+  if (res == 0) {
+    CAMLreturn(Val_true);
+  }
+  else if ( res == -1 ) {
+    CAMLreturn(Val_false);
+  }
+  else {
+    assert(false);
+  }
 }
+
 
 CAMLprim value aa_publication_close(value o_publication)
 {
   CAMLparam1(o_publication);
-  aeron_publication_t* publication = publication_val(o_publication);
+  aeron_publication_t* publication =
+    publication_val(o_publication);
   int res = aeron_publication_close( publication, NULL, NULL );
+  if (res == 0) {
+    CAMLreturn(Val_true);
+  }
+  else if ( res == -1 ) {
+    CAMLreturn(Val_false);
+  }
+  else {
+    assert(false);
+  }
+}
+
+CAMLprim value aa_exclusive_publication_close(value o_exclusive_publication)
+{
+  CAMLparam1(o_exclusive_publication);
+  aeron_exclusive_publication_t* exclusive_publication =
+    exclusive_publication_val(o_exclusive_publication);
+  int res = aeron_exclusive_publication_close( exclusive_publication, NULL, NULL );
   if (res == 0) {
     CAMLreturn(Val_true);
   }

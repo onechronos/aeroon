@@ -102,6 +102,11 @@ external exclusive_publication_offer :
 
 external publication_close : publication -> bool = "aa_publication_close"
 
+external exclusive_publication_close : exclusive_publication -> bool
+  = "aa_exclusive_publication_close"
+
+external subscription_close : subscription -> bool = "aa_subscription_close"
+
 external publication_is_closed : publication -> bool
   = "aa_publication_is_closed"
 
