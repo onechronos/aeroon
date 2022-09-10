@@ -15,15 +15,15 @@ let main_idle_strategy = main_idle_strategy
 module IdleStrategy = struct
   type t = int -> int -> unit
 
-  let sleeping_idle : t = idle_strategy_sleeping_idle
+  let sleeping : t = idle_strategy_sleeping_idle
 
-  let yielding_idle : t = idle_strategy_yielding_idle
+  let yielding : t = idle_strategy_yielding_idle
 
-  let busy_spinning_idle : t = idle_strategy_busy_spinning_idle
+  let busy_spinning : t = idle_strategy_busy_spinning_idle
 
-  let noop_idle : t = idle_strategy_noop_idle
+  let noop : t = idle_strategy_noop_idle
 
-  let backoff_idle : t = idle_strategy_backoff_idle
+  let backoff : t = idle_strategy_backoff_idle
 end
 
 module Context = struct

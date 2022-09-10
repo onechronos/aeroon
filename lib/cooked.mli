@@ -11,15 +11,15 @@ end
 module IdleStrategy : sig
   type t = int -> int -> unit
 
-  val sleeping_idle : t
+  val sleeping : t
 
-  val yielding_idle : t
+  val yielding : t
 
-  val busy_spinning_idle : t
+  val busy_spinning : t
 
-  val noop_idle : t
+  val noop : t
 
-  val backoff_idle : t
+  val backoff : t
 end
 
 module Context : sig
