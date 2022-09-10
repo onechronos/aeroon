@@ -44,7 +44,7 @@ module Client = struct
   let close = close
 end
 
-let create_pub async_add async_poll ?(pause_between_attempts_s = 1e-3) client
+let create_retry async_add async_poll ?(pause_between_attempts_s = 1e-3) client
     uri stream_id : ('a, string) result =
   match async_add client uri stream_id with
   | None -> Error (errmsg ())
@@ -64,7 +64,7 @@ type publication_error = Raw.publication_error
 module Publication = struct
   type t = publication
 
-  let create = create_pub async_add_publication async_add_publication_poll
+  let create = create_retry async_add_publication async_add_publication_poll
 
   let close = publication_close
 
@@ -79,7 +79,7 @@ module ExclusivePublication = struct
   type t = exclusive_publication
 
   let create =
-    create_pub async_add_exclusive_publication
+    create_retry async_add_exclusive_publication
       async_add_exclusive_publication_poll
 
   let close = exclusive_publication_close
@@ -110,20 +110,7 @@ end
 module Subscription = struct
   type t = subscription
 
-  let create ?(pause_between_attempts_s = 1e-3) client uri stream_id :
-      (t, string) result =
-    match async_add_subscription client uri stream_id with
-    | None -> Error (errmsg ())
-    | Some async ->
-      let rec poll () : (t, string) result =
-        match async_add_subscription_poll async with
-        | Error -> Error (errmsg ())
-        | TryAgain ->
-          Unix.sleepf pause_between_attempts_s;
-          poll ()
-        | Ok subscription -> Ok subscription
-      in
-      poll ()
+  let create = create_retry async_add_subscription async_add_subscription_poll
 
   let close = subscription_close
 
