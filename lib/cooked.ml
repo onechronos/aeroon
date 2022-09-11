@@ -61,6 +61,14 @@ let create_retry async_add async_poll ?(pause_between_attempts_s = 1e-3) client
 
 type publication_error = Raw.publication_error
 
+let string_of_publication_error = function
+  | Not_connected -> "not connected"
+  | Back_pressured -> "back pressured"
+  | Admin_action -> "admin action"
+  | Closed -> "closed"
+  | Max_position_exceeded -> "max position exceeded"
+  | Error -> "error"
+
 module Publication = struct
   type t = publication
 

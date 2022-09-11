@@ -44,6 +44,8 @@ val main_idle_strategy : Client.t -> int -> unit
 
 type publication_error = Raw.publication_error
 
+val string_of_publication_error : publication_error -> string
+
 module Publication : sig
   type t
 
