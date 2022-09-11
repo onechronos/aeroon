@@ -8,6 +8,12 @@ module Version : sig
   val full : string
 end
 
+module Clock : sig
+  val nano : unit -> int
+
+  val epoch : unit -> int
+end
+
 module IdleStrategy : sig
   type t = int -> int -> unit
 
@@ -46,15 +52,16 @@ type publication_error = Raw.publication_error
 
 val string_of_publication_error : publication_error -> string
 
+type canal = {
+  uri: string;
+  stream_id: int;
+}
+
 module Publication : sig
   type t
 
   val create :
-    ?pause_between_attempts_s:float ->
-    Client.t ->
-    string ->
-    int ->
-    (t, string) result
+    ?pause_between_attempts_s:float -> Client.t -> canal -> (t, string) result
 
   val close : t -> bool
 
@@ -69,11 +76,7 @@ module ExclusivePublication : sig
   type t
 
   val create :
-    ?pause_between_attempts_s:float ->
-    Client.t ->
-    string ->
-    int ->
-    (t, string) result
+    ?pause_between_attempts_s:float -> Client.t -> canal -> (t, string) result
 
   val close : t -> bool
 
@@ -98,17 +101,15 @@ module Image : sig
   val create_assembler : fragment_handler -> a option
 
   val poll : t -> a -> int -> int option
+
+  val position : t -> int
 end
 
 module Subscription : sig
   type t
 
   val create :
-    ?pause_between_attempts_s:float ->
-    Client.t ->
-    string ->
-    int ->
-    (t, string) result
+    ?pause_between_attempts_s:float -> Client.t -> canal -> (t, string) result
 
   type a
 

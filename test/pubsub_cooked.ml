@@ -1,8 +1,6 @@
 open Aeron.Cooked
 
-let uri = "aeron:udp?endpoint=localhost:20121"
-
-let stream_id = 1001
+let canal = { uri = "aeron:udp?endpoint=localhost:20121"; stream_id = 1001 }
 
 let context_and_client () =
   match Context.create () with
@@ -21,7 +19,7 @@ let cleanup ctx client =
 let subscribe () =
   let ctx, client = context_and_client () in
   let subscription =
-    match Subscription.create client uri stream_id with
+    match Subscription.create client canal with
     | Ok sub -> sub
     | Error msg -> failwith msg
   in
@@ -51,7 +49,7 @@ let publish () =
   let ctx, client = context_and_client () in
 
   let publication =
-    match Publication.create client uri stream_id with
+    match Publication.create client canal with
     | Error msg -> failwith msg
     | Ok pub -> pub
   in

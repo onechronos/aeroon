@@ -26,6 +26,12 @@ module IdleStrategy = struct
   let backoff : t = idle_strategy_backoff_idle
 end
 
+module Clock = struct
+  let nano = nano_clock
+
+  let epoch = epoch_clock
+end
+
 module Context = struct
   type t = context
 
@@ -44,8 +50,13 @@ module Client = struct
   let close = close
 end
 
+type canal = {
+  uri: string;
+  stream_id: int;
+}
+
 let create_retry async_add async_poll ?(pause_between_attempts_s = 1e-3) client
-    uri stream_id : ('a, string) result =
+    { uri; stream_id } : ('a, string) result =
   match async_add client uri stream_id with
   | None -> Error (errmsg ())
   | Some async ->
@@ -113,6 +124,8 @@ module Image = struct
   type a = image_fragment_assembler
 
   let create_assembler = image_fragment_assembler_create
+
+  let position = image_position
 end
 
 module Subscription = struct
