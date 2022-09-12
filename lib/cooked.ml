@@ -70,7 +70,13 @@ let create_retry async_add async_poll ?(pause_between_attempts_s = 1e-3) client
     in
     poll ()
 
-type publication_error = Raw.publication_error
+type publication_error = Raw.publication_error =
+  | Not_connected
+  | Back_pressured
+  | Admin_action
+  | Closed
+  | Max_position_exceeded
+  | Error
 
 let string_of_publication_error = function
   | Not_connected -> "not connected"
