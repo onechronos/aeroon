@@ -11,6 +11,7 @@ depends: [
   "dune" {>= "3.0"}
   "ctypes"
   "ctypes-foreign"
+  "containers-thread" {>= "3.0" & < "4.0"}
   "ocaml" {>= "4.03"}
   "odoc" {with-doc}
 ]
