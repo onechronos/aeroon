@@ -242,7 +242,7 @@ module Subscription : sig
     (t -> 'a) ->
     ('a, string) result
   (** Calls {!create}, and pass the result to the callback [f].
-      Uses {!Fun.protect} to call {!close} after [f] returns. *)
+      Uses [Stdlib.Fun.protect] to call {!close} after [f] returns. *)
 
   val is_closed : t -> bool
   (** [is_closed sub] returns [true] if subscription [sub] is closed, and [false] otherwise. *)
