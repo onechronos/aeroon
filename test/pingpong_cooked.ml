@@ -101,7 +101,7 @@ let ping =
         IdleStrategy.busy_spinning 0 0;
         send msg
       | Error code ->
-        print_endline (string_of_publication_error code);
+        print_endline (Publication_error.to_string code);
         exit 1
     and recv position =
       if Image.position image < position then
@@ -179,7 +179,7 @@ let pong () =
           assert (position > 0);
           ()
         | Error code ->
-          print_endline (string_of_publication_error code);
+          print_endline (Publication_error.to_string code);
           exit 1
       in
 
@@ -197,7 +197,7 @@ let pong () =
           assert (position > 0);
           ()
         | Error code ->
-          print_endline (string_of_publication_error code);
+          print_endline (Publication_error.to_string code);
           exit 1
       in
 

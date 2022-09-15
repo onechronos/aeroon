@@ -79,7 +79,7 @@ let publish () =
         pub n i
       | Error code ->
         Printf.printf "Publication offer error=%s\n"
-          (string_of_publication_error code);
+          (Publication_error.to_string code);
         exit 1
     )
   in

@@ -1,5 +1,12 @@
 open Raw
 
+module Log = (val Logs.src_log (Logs.Src.create "aeron"))
+
+open struct
+  let check_close_err what b =
+    if not b then Log.err (fun k -> k "could not close %s" what)
+end
+
 module Version = struct
   let major = version_major ()
 
@@ -38,6 +45,14 @@ module Context = struct
   let create = context_init
 
   let close = context_close
+
+  let with_ f =
+    match create () with
+    | None -> None
+    | Some c ->
+      Fun.protect
+        (fun () -> Some (f c))
+        ~finally:(fun () -> check_close_err "context" (close c))
 end
 
 module Client = struct
@@ -48,6 +63,17 @@ module Client = struct
   let start = start
 
   let close = close
+
+  let with_create_start ctx f =
+    match create ctx with
+    | None -> None
+    | Some c ->
+      if not (start c) then
+        None
+      else
+        Fun.protect
+          (fun () -> Some (f c))
+          ~finally:(fun () -> check_close_err "client" @@ close c)
 end
 
 type canal = {
@@ -70,21 +96,23 @@ let create_retry async_add async_poll ?(pause_between_attempts_s = 1e-3) client
     in
     poll ()
 
-type publication_error = Raw.publication_error =
-  | Not_connected
-  | Back_pressured
-  | Admin_action
-  | Closed
-  | Max_position_exceeded
-  | Error
+module Publication_error = struct
+  type t = Raw.publication_error =
+    | Not_connected
+    | Back_pressured
+    | Admin_action
+    | Closed
+    | Max_position_exceeded
+    | Error
 
-let string_of_publication_error = function
-  | Not_connected -> "not connected"
-  | Back_pressured -> "back pressured"
-  | Admin_action -> "admin action"
-  | Closed -> "closed"
-  | Max_position_exceeded -> "max position exceeded"
-  | Error -> "error"
+  let to_string = function
+    | Not_connected -> "not connected"
+    | Back_pressured -> "back pressured"
+    | Admin_action -> "admin action"
+    | Closed -> "closed"
+    | Max_position_exceeded -> "max position exceeded"
+    | Error -> "error"
+end
 
 module Publication = struct
   type t = publication
@@ -92,6 +120,14 @@ module Publication = struct
   let create = create_retry async_add_publication async_add_publication_poll
 
   let close = publication_close
+
+  let with_ ?pause_between_attempts_s client canal f : _ result =
+    match create ?pause_between_attempts_s client canal with
+    | Error e -> Error e
+    | Ok c ->
+      Fun.protect
+        (fun () -> Result.Ok (f c))
+        ~finally:(fun () -> check_close_err "publication" @@ close c)
 
   let offer = publication_offer
 
@@ -108,6 +144,14 @@ module ExclusivePublication = struct
       async_add_exclusive_publication_poll
 
   let close = exclusive_publication_close
+
+  let with_ ?pause_between_attempts_s client canal f : _ result =
+    match create ?pause_between_attempts_s client canal with
+    | Error e -> Error e
+    | Ok c ->
+      Fun.protect
+        (fun () -> Result.Ok (f c))
+        ~finally:(fun () -> check_close_err "exclusive publication" @@ close c)
 
   let offer = exclusive_publication_offer
 
@@ -140,6 +184,14 @@ module Subscription = struct
   let create = create_retry async_add_subscription async_add_subscription_poll
 
   let close = subscription_close
+
+  let with_ ?pause_between_attempts_s client canal f : _ result =
+    match create ?pause_between_attempts_s client canal with
+    | Error e -> Error e
+    | Ok c ->
+      Fun.protect
+        (fun () -> Result.Ok (f c))
+        ~finally:(fun () -> check_close_err "subscription" @@ close c)
 
   let is_closed = subscription_is_closed
 

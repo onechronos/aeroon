@@ -1,12 +1,9 @@
 (library
  (name aeron)
  (public_name aeroon)
-
  (foreign_stubs
-   (language c)
-   (names aa_stubs)
-   (include_dirs "%{env:AERON_ROOT=/path/to/aeron}/aeron-client/src/main/c"))
- (c_library_flags -L"%{env:AERON_ROOT=/path/to/aeron}/build/lib" -laeron)
-
- (libraries unix)
-)
+  (language c)
+  (names aa_stubs)
+  (include_dirs "%{env:AERON_ROOT=/path/to/aeron}/aeron-client/src/main/c"))
+ (c_library_flags -L "%{env:AERON_ROOT=/path/to/aeron}/build/lib" -laeron)
+ (libraries unix logs))

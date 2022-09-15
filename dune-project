@@ -23,6 +23,7 @@
   dune
   ctypes
   ctypes-foreign
+  logs
   (odoc :with-doc)
   (containers-thread
    (and

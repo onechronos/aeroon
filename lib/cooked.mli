@@ -46,6 +46,9 @@ module Context : sig
   (** close an Aeron context; using any Aeron function dependent on
       this context thereafter is unsafe, and likely result in
       segfaults *)
+
+  val with_ : (t -> 'a) -> 'a option
+  (** Create a context, calls the function, and close the context. *)
 end
 
 (** Aeron client *)
@@ -60,6 +63,9 @@ module Client : sig
 
   val close : t -> bool
   (** close an Aeron client. A result of [false] indicates failure *)
+
+  val with_create_start : Context.t -> (t -> 'a) -> 'a option
+  (** Create a client, start it, calls the function, and close the context. *)
 end
 
 val main_idle_strategy : Client.t -> int -> unit
@@ -67,21 +73,24 @@ val main_idle_strategy : Client.t -> int -> unit
 
 (** abnormal outcomes to attempted publication offers; most outcomes
     are non-fatal and transient. *)
-type publication_error = Raw.publication_error =
-  | Not_connected
-      (** The publication is not connected to a subscriber, this can be an intermittent state as subscribers come and go. *)
-  | Back_pressured
-      (** The offer failed due to back pressure from the subscribers preventing further transmission. *)
-  | Admin_action
-      (** The offer failed due to an administration action and should be retried.
+module Publication_error : sig
+  type t = Raw.publication_error =
+    | Not_connected
+        (** The publication is not connected to a subscriber, this can be an intermittent state as subscribers come and go. *)
+    | Back_pressured
+        (** The offer failed due to back pressure from the subscribers preventing further transmission. *)
+    | Admin_action
+        (** The offer failed due to an administration action and should be retried.
       The action is an operation such as log rotation which is likely to have succeeded by the next retry attempt. *)
-  | Closed  (** The publication has been closed and should no longer be used. *)
-  | Max_position_exceeded
-      (** The offer failed due to reaching the maximum position of the stream given term buffer length times the total possible number of terms. *)
-  | Error  (** An error has occurred, such as a bad argument. *)
+    | Closed
+        (** The publication has been closed and should no longer be used. *)
+    | Max_position_exceeded
+        (** The offer failed due to reaching the maximum position of the stream given term buffer length times the total possible number of terms. *)
+    | Error  (** An error has occurred, such as a bad argument. *)
 
-val string_of_publication_error : publication_error -> string
-(** convert a value of [publication_error] into a readable string *)
+  val to_string : t -> string
+  (** convert a value of [publication_error] into a readable string *)
+end
 
 type canal = {
   uri: string;
@@ -100,7 +109,16 @@ module Publication : sig
   val close : t -> bool
   (** close an Aeron publication; [false] indicates failure *)
 
-  val offer : t -> string -> (int, publication_error) result
+  val with_ :
+    ?pause_between_attempts_s:float ->
+    Client.t ->
+    canal ->
+    (t -> 'a) ->
+    ('a, string) result
+  (** Calls {!create}, pass the result to the callback, and make sure to
+      close after it's done *)
+
+  val offer : t -> string -> (int, Publication_error.t) result
   (** [offer pub msg] send string [msg] to publication [pub]. If
       successful, returns new stream position. Otherwise it returns a
       value of [publication_error]. *)
@@ -120,10 +138,19 @@ module ExclusivePublication : sig
     ?pause_between_attempts_s:float -> Client.t -> canal -> (t, string) result
   (** create an Aeron exclusive publication *)
 
+  val with_ :
+    ?pause_between_attempts_s:float ->
+    Client.t ->
+    canal ->
+    (t -> 'a) ->
+    ('a, string) result
+  (** Calls {!create}, pass the result to the callback, and make sure to
+      close after it's done *)
+
   val close : t -> bool
   (** close an Aeron exclusive publication; [false] indicates failure *)
 
-  val offer : t -> string -> (int, publication_error) result
+  val offer : t -> string -> (int, Publication_error.t) result
   (** [offer pub msg] send string [msg] to exclusive publication [pub]. If
       successful, returns new stream position. Otherwise it returns a
       value of [publication_error]. *)
@@ -207,6 +234,15 @@ module Subscription : sig
 
   val close : t -> bool
   (** [close sub] closes subscription [sub] *)
+
+  val with_ :
+    ?pause_between_attempts_s:float ->
+    Client.t ->
+    canal ->
+    (t -> 'a) ->
+    ('a, string) result
+  (** Calls {!create}, and pass the result to the callback [f].
+      Uses {!Fun.protect} to call {!close} after [f] returns. *)
 
   val is_closed : t -> bool
   (** [is_closed sub] returns [true] if subscription [sub] is closed, and [false] otherwise. *)
