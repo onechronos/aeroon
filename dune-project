@@ -23,6 +23,7 @@
   dune
   ctypes
   ctypes-foreign
+  (odoc :with-doc)
   (containers-thread
    (and
     (>= 3.0)

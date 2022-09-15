@@ -1,3 +1,5 @@
+(** High level API *)
+
 (** Aeron version information *)
 module Version : sig
   val major : int

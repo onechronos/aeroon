@@ -1,3 +1,5 @@
+(** Raw C bindings *)
+
 external version_major : unit -> int = "aa_version_major"
 
 external version_minor : unit -> int = "aa_version_minor"

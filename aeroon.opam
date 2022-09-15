@@ -11,9 +11,9 @@ depends: [
   "dune" {>= "3.0"}
   "ctypes"
   "ctypes-foreign"
+  "odoc" {with-doc}
   "containers-thread" {>= "3.0" & < "4.0"}
   "ocaml" {>= "4.03"}
-  "odoc" {with-doc}
 ]
 build: [
   ["dune" "subst"] {dev}
