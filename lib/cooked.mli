@@ -47,7 +47,7 @@ module Context : sig
       this context thereafter is unsafe, and likely result in
       segfaults *)
 
-  val with_ : (t -> 'a) -> 'a option
+  val with_ : (t option -> 'a) -> 'a
   (** Create a context, calls the function, and close the context. *)
 end
 
@@ -64,7 +64,7 @@ module Client : sig
   val close : t -> bool
   (** close an Aeron client. A result of [false] indicates failure *)
 
-  val with_create_start : Context.t -> (t -> 'a) -> 'a option
+  val with_create_start : Context.t -> (t option -> 'a) -> 'a
   (** Create a client, start it, calls the function, and close the context. *)
 end
 
@@ -113,8 +113,8 @@ module Publication : sig
     ?pause_between_attempts_s:float ->
     Client.t ->
     canal ->
-    (t -> 'a) ->
-    ('a, string) result
+    ((t, string) result -> 'a) ->
+    'a
   (** Calls {!create}, pass the result to the callback, and make sure to
       close after it's done *)
 
@@ -142,8 +142,8 @@ module ExclusivePublication : sig
     ?pause_between_attempts_s:float ->
     Client.t ->
     canal ->
-    (t -> 'a) ->
-    ('a, string) result
+    ((t, string) result -> 'a) ->
+    'a
   (** Calls {!create}, pass the result to the callback, and make sure to
       close after it's done *)
 
@@ -239,8 +239,8 @@ module Subscription : sig
     ?pause_between_attempts_s:float ->
     Client.t ->
     canal ->
-    (t -> 'a) ->
-    ('a, string) result
+    ((t, string) result -> 'a) ->
+    'a
   (** Calls {!create}, and pass the result to the callback [f].
       Uses [Stdlib.Fun.protect] to call {!close} after [f] returns. *)
 

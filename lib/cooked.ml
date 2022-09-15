@@ -47,12 +47,11 @@ module Context = struct
   let close = context_close
 
   let with_ f =
-    match create () with
-    | None -> None
-    | Some c ->
-      Fun.protect
-        (fun () -> Some (f c))
-        ~finally:(fun () -> check_close_err "context" (close c))
+    let c_opt = create () in
+    Fun.protect
+      (fun () -> f c_opt)
+      ~finally:(fun () ->
+        Option.iter (fun c -> check_close_err "context" (close c)) c_opt)
 end
 
 module Client = struct
@@ -65,15 +64,20 @@ module Client = struct
   let close = close
 
   let with_create_start ctx f =
-    match create ctx with
-    | None -> None
-    | Some c ->
-      if not (start c) then
-        None
-      else
-        Fun.protect
-          (fun () -> Some (f c))
-          ~finally:(fun () -> check_close_err "client" @@ close c)
+    let client_opt = create ctx in
+    let client_started =
+      client_opt
+      |> Option.map (fun c ->
+             if start c then
+               Some c
+             else
+               None)
+      |> Option.join
+    in
+    Fun.protect
+      (fun () -> f client_started)
+      ~finally:(fun () ->
+        Option.iter (fun c -> check_close_err "client" @@ close c) client_opt)
 end
 
 type canal = {
@@ -121,13 +125,12 @@ module Publication = struct
 
   let close = publication_close
 
-  let with_ ?pause_between_attempts_s client canal f : _ result =
-    match create ?pause_between_attempts_s client canal with
-    | Error e -> Error e
-    | Ok c ->
-      Fun.protect
-        (fun () -> Result.Ok (f c))
-        ~finally:(fun () -> check_close_err "publication" @@ close c)
+  let with_ ?pause_between_attempts_s client canal f =
+    let x = create ?pause_between_attempts_s client canal in
+    Fun.protect
+      (fun () -> f x)
+      ~finally:(fun () ->
+        Result.iter (fun x -> check_close_err "publication" @@ close x) x)
 
   let offer = publication_offer
 
@@ -145,13 +148,14 @@ module ExclusivePublication = struct
 
   let close = exclusive_publication_close
 
-  let with_ ?pause_between_attempts_s client canal f : _ result =
-    match create ?pause_between_attempts_s client canal with
-    | Error e -> Error e
-    | Ok c ->
-      Fun.protect
-        (fun () -> Result.Ok (f c))
-        ~finally:(fun () -> check_close_err "exclusive publication" @@ close c)
+  let with_ ?pause_between_attempts_s client canal f =
+    let x = create ?pause_between_attempts_s client canal in
+    Fun.protect
+      (fun () -> f x)
+      ~finally:(fun () ->
+        Result.iter
+          (fun x -> check_close_err "exclusive publication" @@ close x)
+          x)
 
   let offer = exclusive_publication_offer
 
@@ -185,13 +189,14 @@ module Subscription = struct
 
   let close = subscription_close
 
-  let with_ ?pause_between_attempts_s client canal f : _ result =
-    match create ?pause_between_attempts_s client canal with
-    | Error e -> Error e
-    | Ok c ->
-      Fun.protect
-        (fun () -> Result.Ok (f c))
-        ~finally:(fun () -> check_close_err "subscription" @@ close c)
+  let with_ ?pause_between_attempts_s client canal f =
+    let x = create ?pause_between_attempts_s client canal in
+    Fun.protect
+      (fun () -> f x)
+      ~finally:(fun () ->
+        Result.iter
+          (fun x -> check_close_err "exclusive subscription" @@ close x)
+          x)
 
   let is_closed = subscription_is_closed
 
