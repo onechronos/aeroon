@@ -1,0 +1,3 @@
+(executable
+ (name chat)
+ (libraries containers linenoise threads aeron logs yojson))
