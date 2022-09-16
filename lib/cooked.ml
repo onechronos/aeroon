@@ -118,6 +118,18 @@ module Publication_error = struct
     | Error -> "error"
 end
 
+(* re-try publication *)
+let rec retry_pub_ (f : unit -> ((_, Publication_error.t) result as 'res)) :
+    'res =
+  match f () with
+  | Error Publication_error.Back_pressured ->
+    IdleStrategy.busy_spinning 0 0;
+    retry_pub_ f
+  | Error Publication_error.Admin_action ->
+    IdleStrategy.busy_spinning 0 0;
+    retry_pub_ f
+  | r -> r
+
 module Publication = struct
   type t = publication
 
@@ -132,7 +144,8 @@ module Publication = struct
       ~finally:(fun () ->
         Result.iter (fun x -> check_close_err "publication" @@ close x) x)
 
-  let offer = publication_offer
+  let offer (self : t) (msg : string) : _ result =
+    retry_pub_ (fun _ -> publication_offer self msg)
 
   let is_connected = publication_is_connected
 
@@ -157,7 +170,8 @@ module ExclusivePublication = struct
           (fun x -> check_close_err "exclusive publication" @@ close x)
           x)
 
-  let offer = exclusive_publication_offer
+  let offer (self : t) msg : _ result =
+    retry_pub_ (fun _ -> exclusive_publication_offer self msg)
 
   let is_closed = exclusive_publication_is_closed
 
