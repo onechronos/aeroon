@@ -140,8 +140,6 @@ module With_zmq = struct
     let@ () = Fun.protect ~finally:(fun () -> Zmq.Socket.close sock) in
     Zmq.Socket.connect sock uri;
 
-    Thread.delay 0.05;
-
     let read1 file =
       Log.info (fun k -> k "reading file %S" file);
       let n_chunks = ref 0 in
