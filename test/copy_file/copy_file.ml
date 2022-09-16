@@ -136,8 +136,7 @@ module With_zmq = struct
 
   (* read input files *)
   let t_read ~(ctx : Zmq.Context.t) ~inputs () : unit =
-    let sock = Zmq.Socket.create ctx Zmq.Socket.pub in
-    Zmq.Socket.set_send_high_water_mark sock 2_000_000;
+    let sock = Zmq.Socket.create ctx Zmq.Socket.push in
     let@ () = Fun.protect ~finally:(fun () -> Zmq.Socket.close sock) in
     Zmq.Socket.connect sock uri;
 
@@ -165,10 +164,9 @@ module With_zmq = struct
 
   (* write into file *)
   let t_write ~(ctx : Zmq.Context.t) ~into ~n_written () : unit =
-    let sock = Zmq.Socket.create ctx Zmq.Socket.sub in
+    let sock = Zmq.Socket.create ctx Zmq.Socket.pull in
     let@ () = Fun.protect ~finally:(fun () -> Zmq.Socket.close sock) in
     Zmq.Socket.bind sock uri;
-    Zmq.Socket.subscribe sock "";
 
     let@ oc = CCIO.with_out into in
 
