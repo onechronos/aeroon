@@ -1,3 +1,3 @@
 (executable
  (name copy_file)
- (libraries containers aeron threads unix))
+ (libraries containers aeron zmq threads unix))
