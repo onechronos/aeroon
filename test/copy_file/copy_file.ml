@@ -113,8 +113,8 @@ module With_aeron = struct
 
   let copy ~inputs ~into ~port () : unit =
     let time_start = Unix.gettimeofday () in
-
-    Log.info (fun k -> k "start client");
+    let pid = Unix.getpid () in
+    Log.info (fun k -> k "start client with pid=%d" pid);
     let@ ctx = A.Context.with_ in
     let ctx = unwrap_opt_ "could not create ctx" ctx in
     let@ client = A.Client.with_create_start ctx in

@@ -119,16 +119,31 @@ module Publication_error = struct
 end
 
 (* re-try publication *)
-let rec retry_pub_ (f : unit -> ((_, Publication_error.t) result as 'res)) :
-    'res =
+let rec retry_pub_h prev_result ~pause_between_attempts_s ~retry_limit
+    (f : unit -> ((_, Publication_error.t) result as 'res)) : 'res =
+  match prev_result with
+  | Some (retry_count, prev_error) when retry_count = retry_limit ->
+    Error prev_error
+  | Some (retry_count, _) ->
+    actually_retry_pub_h ~pause_between_attempts_s ~retry_limit
+      (retry_count + 1) f
+  | None -> actually_retry_pub_h ~pause_between_attempts_s ~retry_limit 0 f
+
+and actually_retry_pub_h ~pause_between_attempts_s ~retry_limit retry_count f =
+  (* when experiencing back-pressure or admin-action; double the
+     [pause_between_attempts_s] *)
   match f () with
-  | Error Publication_error.Back_pressured ->
-    IdleStrategy.busy_spinning 0 0;
-    retry_pub_ f
-  | Error Publication_error.Admin_action ->
-    IdleStrategy.busy_spinning 0 0;
-    retry_pub_ f
+  | Error (Publication_error.Back_pressured as e) ->
+    Unix.sleepf pause_between_attempts_s;
+    let pause_between_attempts_s = 2.0 *. pause_between_attempts_s in
+    retry_pub_h (Some (retry_count, e)) ~pause_between_attempts_s ~retry_limit f
+  | Error (Publication_error.Admin_action as e) ->
+    Unix.sleepf pause_between_attempts_s;
+    let pause_between_attempts_s = 2.0 *. pause_between_attempts_s in
+    retry_pub_h (Some (retry_count, e)) ~pause_between_attempts_s ~retry_limit f
   | r -> r
+
+let retry_pub_ = retry_pub_h None
 
 module Publication = struct
   type t = publication
@@ -144,8 +159,10 @@ module Publication = struct
       ~finally:(fun () ->
         Result.iter (fun x -> check_close_err "publication" @@ close x) x)
 
-  let offer (self : t) (msg : string) : _ result =
-    retry_pub_ (fun _ -> publication_offer self msg)
+  let offer ?(pause_between_attempts_s = 1e-6) ?(retry_limit = 100) (self : t)
+      (msg : string) : _ result =
+    retry_pub_ ~pause_between_attempts_s ~retry_limit (fun _ ->
+        publication_offer self msg)
 
   let is_connected = publication_is_connected
 
@@ -170,8 +187,10 @@ module ExclusivePublication = struct
           (fun x -> check_close_err "exclusive publication" @@ close x)
           x)
 
-  let offer (self : t) msg : _ result =
-    retry_pub_ (fun _ -> exclusive_publication_offer self msg)
+  let offer ?(pause_between_attempts_s = 1e-6) ?(retry_limit = 100) (self : t)
+      msg : _ result =
+    retry_pub_ ~pause_between_attempts_s ~retry_limit (fun _ ->
+        exclusive_publication_offer self msg)
 
   let is_closed = exclusive_publication_is_closed
 

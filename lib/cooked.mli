@@ -118,7 +118,12 @@ module Publication : sig
   (** Calls {!create}, pass the result to the callback, and make sure to
       close after it's done *)
 
-  val offer : t -> string -> (int, Publication_error.t) result
+  val offer :
+    ?pause_between_attempts_s:float ->
+    ?retry_limit:int ->
+    t ->
+    string ->
+    (int, Publication_error.t) result
   (** [offer pub msg] send string [msg] to publication [pub]. If
       successful, returns new stream position. Otherwise it returns a
       value of [publication_error]. *)
@@ -150,7 +155,12 @@ module ExclusivePublication : sig
   val close : t -> bool
   (** close an Aeron exclusive publication; [false] indicates failure *)
 
-  val offer : t -> string -> (int, Publication_error.t) result
+  val offer :
+    ?pause_between_attempts_s:float ->
+    ?retry_limit:int ->
+    t ->
+    string ->
+    (int, Publication_error.t) result
   (** [offer pub msg] send string [msg] to exclusive publication [pub]. If
       successful, returns new stream position. Otherwise it returns a
       value of [publication_error]. *)
