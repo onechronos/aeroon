@@ -46,11 +46,19 @@ module With_aeron = struct
     let uri = spf "aeron:udp?endpoint=localhost:%d" port in
     { A.uri; stream_id = 1 }
 
+  let rec connect publication =
+    if not (A.Publication.is_connected publication) then (
+      print_endline "publication not connected; trying again";
+      Unix.sleep 1;
+      connect publication
+    )
+
   (* read input files *)
   let t_read ~(client : A.Client.t) ~port ~inputs () : unit =
     let canal = canal ~port () in
     let@ pub = A.Publication.with_ client canal in
     let pub = unwrap_str_ pub in
+    let () = connect pub in
 
     let read1 file =
       Log.info (fun k -> k "reading file %S" file);
