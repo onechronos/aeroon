@@ -17,6 +17,43 @@ module Version = struct
   let full = version_full ()
 end
 
+module Error = struct
+  type t =
+    | Invalid_channel
+    | Unknown_subscription
+    | Unknown_publication
+    | Channel_endpoint_error
+    | Unknown_counter
+    | Unknown_command_type_id
+    | Malformed_command
+    | Not_supported
+    | Unknown_host
+    | Resource_temporarily_unavailable
+    | Generic_error
+
+  let code_t_assoc =
+    [
+      error_code_invalid_channel (), Invalid_channel;
+      error_code_unknown_subscription (), Unknown_subscription;
+      error_code_unknown_publication (), Unknown_publication;
+      error_code_channel_endpoint_error (), Channel_endpoint_error;
+      error_code_unknown_counter (), Unknown_counter;
+      error_code_unknown_command_type_id (), Unknown_command_type_id;
+      error_code_malformed_command (), Malformed_command;
+      error_code_not_supported (), Not_supported;
+      error_code_unknown_host (), Unknown_host;
+      ( error_code_resource_temporarily_unavailable (),
+        Resource_temporarily_unavailable );
+      error_code_generic_error (), Generic_error;
+    ]
+
+  let get () =
+    let code = errcode () in
+    match List.assoc_opt (-code) code_t_assoc with
+    | None -> `U (code, errmsg ())
+    | Some t -> `K t
+end
+
 let main_idle_strategy = main_idle_strategy
 
 module IdleStrategy = struct
@@ -96,7 +133,12 @@ let create_retry async_add async_poll ?(pause_between_attempts_s = 1e-3) client
       | TryAgain ->
         Unix.sleepf pause_between_attempts_s;
         poll ()
-      | Error -> Error (errmsg ())
+      | Error ->
+        (match Error.get () with
+        | `K Error.Resource_temporarily_unavailable ->
+          Unix.sleepf pause_between_attempts_s;
+          poll ()
+        | _ -> Error (errmsg ()))
     in
     poll ()
 

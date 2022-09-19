@@ -18,6 +18,7 @@
 /* Aeron */
 #include <aeronc.h>
 #include <aeron_agent.h>
+#include <command/aeron_control_protocol.h>
 
 #define context_val(v)                         (*((aeron_context_t                         **) Data_custom_val(v)))
 #define client_val(v)                          (*((aeron_t                                 **) Data_custom_val(v)))
@@ -84,6 +85,85 @@ CAMLprim value aa_errcode(value _unit)
   CAMLparam1(_unit);
   CAMLreturn(Val_int( aeron_errcode() ) );
 }
+
+// error_code_invalid_channel : unit -> int
+CAMLprim value aa_error_code_invalid_channel(value _unit)
+{
+  CAMLparam1(_unit);
+  CAMLreturn(Val_int(AERON_ERROR_CODE_INVALID_CHANNEL));
+}
+
+// error_code_unknown_subscription : unit -> int
+CAMLprim value aa_error_code_unknown_subscription(value _unit)
+{
+  CAMLparam1(_unit);
+  CAMLreturn(Val_int(AERON_ERROR_CODE_UNKNOWN_SUBSCRIPTION));
+}
+
+// error_code_unknown_publication : unit -> int
+CAMLprim value aa_error_code_unknown_publication(value _unit)
+{
+  CAMLparam1(_unit);
+  CAMLreturn(Val_int(AERON_ERROR_CODE_UNKNOWN_PUBLICATION));
+}
+
+// error_code_channel_endpoint_error : unit -> int
+CAMLprim value aa_error_code_channel_endpoint_error(value _unit)
+{
+  CAMLparam1(_unit);
+  CAMLreturn(Val_int(AERON_ERROR_CODE_CHANNEL_ENDPOINT_ERROR));
+}
+
+// error_code_unknown_counter : unit -> int
+CAMLprim value aa_error_code_unknown_counter(value _unit)
+{
+  CAMLparam1(_unit);
+  CAMLreturn(Val_int(AERON_ERROR_CODE_UNKNOWN_COUNTER));
+}
+
+// error_code_unknown_command_type_id : unit -> int
+CAMLprim value aa_error_code_unknown_command_type_id(value _unit)
+{
+  CAMLparam1(_unit);
+  CAMLreturn(Val_int(AERON_ERROR_CODE_UNKNOWN_COMMAND_TYPE_ID));
+}
+
+// error_code_malformed_command : unit -> int
+CAMLprim value aa_error_code_malformed_command(value _unit)
+{
+  CAMLparam1(_unit);
+  CAMLreturn(Val_int(AERON_ERROR_CODE_MALFORMED_COMMAND));
+}
+
+// error_code_not_supported : unit -> int
+CAMLprim value aa_error_code_not_supported(value _unit)
+{
+  CAMLparam1(_unit);
+  CAMLreturn(Val_int(AERON_ERROR_CODE_NOT_SUPPORTED));
+}
+
+// error_code_unknown_host : unit -> int
+CAMLprim value aa_error_code_unknown_host(value _unit)
+{
+  CAMLparam1(_unit);
+  CAMLreturn(Val_int(AERON_ERROR_CODE_UNKNOWN_HOST));
+}
+
+
+// error_code_resource_temporarily_unavailable : unit -> int
+CAMLprim value aa_error_code_resource_temporarily_unavailable(value _unit)
+{
+  CAMLparam1(_unit);
+  CAMLreturn(Val_int(AERON_ERROR_CODE_RESOURCE_TEMPORARILY_UNAVAILABLE));
+}
+
+// error_code_generic_error : unit -> int
+CAMLprim value aa_error_code_generic_error(value _unit)
+{
+  CAMLparam1(_unit);
+  CAMLreturn(Val_int(AERON_ERROR_CODE_GENERIC_ERROR));
+}
+
 
 // nano_clock : unit -> int
 CAMLprim value aa_nano_clock(value _unit)

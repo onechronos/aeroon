@@ -12,6 +12,36 @@ external errmsg : unit -> string = "aa_errmsg"
 
 external errcode : unit -> int = "aa_errcode"
 
+external error_code_invalid_channel : unit -> int
+  = "aa_error_code_invalid_channel"
+
+external error_code_unknown_subscription : unit -> int
+  = "aa_error_code_unknown_subscription"
+
+external error_code_unknown_publication : unit -> int
+  = "aa_error_code_unknown_publication"
+
+external error_code_channel_endpoint_error : unit -> int
+  = "aa_error_code_channel_endpoint_error"
+
+external error_code_unknown_counter : unit -> int
+  = "aa_error_code_unknown_counter"
+
+external error_code_unknown_command_type_id : unit -> int
+  = "aa_error_code_unknown_command_type_id"
+
+external error_code_malformed_command : unit -> int
+  = "aa_error_code_malformed_command"
+
+external error_code_not_supported : unit -> int = "aa_error_code_not_supported"
+
+external error_code_unknown_host : unit -> int = "aa_error_code_unknown_host"
+
+external error_code_resource_temporarily_unavailable : unit -> int
+  = "aa_error_code_resource_temporarily_unavailable"
+
+external error_code_generic_error : unit -> int = "aa_error_code_generic_error"
+
 external nano_clock : unit -> int = "aa_nano_clock"
 
 external epoch_clock : unit -> int = "aa_epoch_clock"

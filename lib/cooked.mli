@@ -11,6 +11,24 @@ module Version : sig
   val full : string
 end
 
+(** Error characterization *)
+module Error : sig
+  type t =
+    | Invalid_channel
+    | Unknown_subscription
+    | Unknown_publication
+    | Channel_endpoint_error
+    | Unknown_counter
+    | Unknown_command_type_id
+    | Malformed_command
+    | Not_supported
+    | Unknown_host
+    | Resource_temporarily_unavailable
+    | Generic_error
+
+  val get : unit -> [ `K of t | `U of int * string ]
+end
+
 (** Clock: wall and non-wall time *)
 module Clock : sig
   val nano : unit -> int
