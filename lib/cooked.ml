@@ -5,6 +5,12 @@ module Log = (val Logs.src_log (Logs.Src.create "aeron"))
 open struct
   let check_close_err what b =
     if not b then Log.err (fun k -> k "could not close %s" what)
+
+  let maybe_sleep = function
+    | None -> ()
+    | Some s -> Unix.sleepf s
+
+  let default_sleep_before_close_s = Some 0.200
 end
 
 module Version = struct
@@ -81,14 +87,20 @@ module Context = struct
 
   let create = context_init
 
-  let close = context_close
+  let close ?sleep_before_s t =
+    maybe_sleep sleep_before_s;
+    context_close t
 
   let with_ f =
     let c_opt = create () in
     Fun.protect
       (fun () -> f c_opt)
       ~finally:(fun () ->
-        Option.iter (fun c -> check_close_err "context" (close c)) c_opt)
+        Option.iter
+          (fun c ->
+            check_close_err "context"
+              (close ?sleep_before_s:default_sleep_before_close_s c))
+          c_opt)
 end
 
 module Client = struct
@@ -98,7 +110,11 @@ module Client = struct
 
   let start = start
 
-  let close = close
+  let close ?sleep_before_s t =
+    is_closed t
+    ||
+    (maybe_sleep sleep_before_s;
+     close t)
 
   let with_create_start ctx f =
     let client_opt = create ctx in
@@ -114,7 +130,11 @@ module Client = struct
     Fun.protect
       (fun () -> f client_started)
       ~finally:(fun () ->
-        Option.iter (fun c -> check_close_err "client" @@ close c) client_opt)
+        Option.iter
+          (fun c ->
+            check_close_err "client"
+            @@ close ?sleep_before_s:default_sleep_before_close_s c)
+          client_opt)
 end
 
 type canal = {
@@ -192,14 +212,20 @@ module Publication = struct
 
   let create = create_retry async_add_publication async_add_publication_poll
 
-  let close = publication_close
+  let close ?sleep_before_s t =
+    maybe_sleep sleep_before_s;
+    publication_close t
 
   let with_ ?pause_between_attempts_s client canal f =
     let x = create ?pause_between_attempts_s client canal in
     Fun.protect
       (fun () -> f x)
       ~finally:(fun () ->
-        Result.iter (fun x -> check_close_err "publication" @@ close x) x)
+        Result.iter
+          (fun x ->
+            check_close_err "publication"
+            @@ close ?sleep_before_s:default_sleep_before_close_s x)
+          x)
 
   let offer ?(pause_between_attempts_s = 1e-6) ?(retry_limit = 100) (self : t)
       (msg : string) : _ result =
@@ -218,7 +244,9 @@ module ExclusivePublication = struct
     create_retry async_add_exclusive_publication
       async_add_exclusive_publication_poll
 
-  let close = exclusive_publication_close
+  let close ?sleep_before_s t =
+    maybe_sleep sleep_before_s;
+    exclusive_publication_close t
 
   let with_ ?pause_between_attempts_s client canal f =
     let x = create ?pause_between_attempts_s client canal in
@@ -226,7 +254,9 @@ module ExclusivePublication = struct
       (fun () -> f x)
       ~finally:(fun () ->
         Result.iter
-          (fun x -> check_close_err "exclusive publication" @@ close x)
+          (fun x ->
+            check_close_err "exclusive publication"
+            @@ close ?sleep_before_s:default_sleep_before_close_s x)
           x)
 
   let offer ?(pause_between_attempts_s = 1e-6) ?(retry_limit = 100) (self : t)
@@ -262,7 +292,9 @@ module Subscription = struct
 
   let create = create_retry async_add_subscription async_add_subscription_poll
 
-  let close = subscription_close
+  let close ?sleep_before_s t =
+    maybe_sleep sleep_before_s;
+    subscription_close t
 
   let with_ ?pause_between_attempts_s client canal f =
     let x = create ?pause_between_attempts_s client canal in
@@ -270,7 +302,9 @@ module Subscription = struct
       (fun () -> f x)
       ~finally:(fun () ->
         Result.iter
-          (fun x -> check_close_err "exclusive subscription" @@ close x)
+          (fun x ->
+            check_close_err "exclusive subscription"
+            @@ close ?sleep_before_s:default_sleep_before_close_s x)
           x)
 
   let is_closed = subscription_is_closed

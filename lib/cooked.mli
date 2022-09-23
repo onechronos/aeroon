@@ -60,7 +60,7 @@ module Context : sig
   val create : unit -> t option
   (** create an Aeron context *)
 
-  val close : t -> bool
+  val close : ?sleep_before_s:float -> t -> bool
   (** close an Aeron context; using any Aeron function dependent on
       this context thereafter is unsafe, and likely result in
       segfaults *)
@@ -79,7 +79,7 @@ module Client : sig
   val start : t -> bool
   (** start an Aeron client. A result of [false] indicates failure *)
 
-  val close : t -> bool
+  val close : ?sleep_before_s:float -> t -> bool
   (** close an Aeron client. A result of [false] indicates failure *)
 
   val with_create_start : Context.t -> (t option -> 'a) -> 'a
@@ -124,7 +124,7 @@ module Publication : sig
     ?pause_between_attempts_s:float -> Client.t -> canal -> (t, string) result
   (** create an Aeron publication *)
 
-  val close : t -> bool
+  val close : ?sleep_before_s:float -> t -> bool
   (** close an Aeron publication; [false] indicates failure *)
 
   val with_ :
@@ -170,7 +170,7 @@ module ExclusivePublication : sig
   (** Calls {!create}, pass the result to the callback, and make sure to
       close after it's done *)
 
-  val close : t -> bool
+  val close : ?sleep_before_s:float -> t -> bool
   (** close an Aeron exclusive publication; [false] indicates failure *)
 
   val offer :
@@ -260,7 +260,7 @@ module Subscription : sig
       desire to use the image directly. Returns [true] on success,
       [false] on failure. *)
 
-  val close : t -> bool
+  val close : ?sleep_before_s:float -> t -> bool
   (** [close sub] closes subscription [sub] *)
 
   val with_ :
