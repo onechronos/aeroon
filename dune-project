@@ -21,8 +21,6 @@
  (description "A Ctypes/Cstubs-based binding to Aeron's C client")
  (depends
   dune
-  ctypes
-  ctypes-foreign
   logs
   (odoc :with-doc)
   (containers-thread

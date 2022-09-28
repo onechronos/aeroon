@@ -9,8 +9,6 @@ homepage: "https://github.com/onechronos/aeroon"
 bug-reports: "https://github.com/onechronos/aeroon/issues"
 depends: [
   "dune" {>= "3.0"}
-  "ctypes"
-  "ctypes-foreign"
   "logs"
   "odoc" {with-doc}
   "containers-thread" {>= "3.0" & < "4.0"}
