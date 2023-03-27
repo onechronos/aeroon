@@ -16,7 +16,7 @@
 (package
  (name aeroon)
  (synopsis "OCaml bindings to the aeron communication system")
- (description "A Ctypes/Cstubs-based binding to Aeron's C client")
+ (description "a wrapper to Aeron's C client")
  (depends
   dune
   logs
