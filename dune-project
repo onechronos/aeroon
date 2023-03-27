@@ -1,6 +1,4 @@
-(lang dune 3.0)
-
-(using ctypes 0.1)
+(lang dune 2.9)
 
 (generate_opam_files true)
 

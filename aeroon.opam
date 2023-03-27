@@ -8,7 +8,7 @@ license: "MIT"
 homepage: "https://github.com/onechronos/aeroon"
 bug-reports: "https://github.com/onechronos/aeroon/issues"
 depends: [
-  "dune" {>= "3.0"}
+  "dune" {>= "2.9"}
   "logs"
   "odoc" {with-doc}
   "containers-thread" {>= "3.0" & < "4.0"}
@@ -23,9 +23,11 @@ build: [
     name
     "-j"
     jobs
+    "--promote-install-files=false"
     "@install"
     "@runtest" {with-test}
     "@doc" {with-doc}
   ]
+  ["dune" "install" "-p" name "--create-install-files" name]
 ]
 dev-repo: "git+https://github.com/onechronos/aeroon.git"
