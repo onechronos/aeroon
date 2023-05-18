@@ -12,14 +12,19 @@ let () =
       var;
     exit 1
   | Some aeron_root ->
-    let fc = Filename.concat in
-    (* expecting C include files in $AERON_ROOT/aeron-client/src/main/c *)
-    let include_dir =
-      fc (fc (fc (fc aeron_root "aeron-client") "src") "main") "c"
+    let fc path_components =
+      match List.rev path_components with
+      | head :: tail ->
+        List.fold_left
+          (fun component path -> Filename.concat path component)
+          head tail
+      | _ -> assert false
     in
+    (* expecting C include files in $AERON_ROOT/aeron-client/src/main/c *)
+    let include_dir = fc [ aeron_root; "aeron-client"; "src"; "main"; "c" ] in
     if Sys.file_exists include_dir then (
-      (* expecting shared object libraries under $AERON_ROOT/build/lib *)
-      let lib_dir = fc (fc aeron_root "build") "lib" in
+      (* expecting shared object libraries under $AERON_ROOT/cppbuild/Release/lib *)
+      let lib_dir = fc [ aeron_root; "cppbuild"; "Release"; "lib" ] in
       if Sys.file_exists lib_dir then (
         let module C = Configurator.V1 in
         C.Flags.write_sexp "c_flags.sexp" [ "-I" ^ include_dir ];
