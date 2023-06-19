@@ -18,6 +18,7 @@ opam pin add .
 or
 ```sh
 export AERON_ROOT=/path/to/aeron
+dune build
 dune install
 ```
 
