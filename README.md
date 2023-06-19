@@ -21,10 +21,14 @@ export AERON_ROOT=/path/to/aeron
 dune build
 dune install
 ```
+Here, `/path/to/aeron` must be replaced with the path of the directory
+where the [Aeron](https://github.com/real-logic/aeron) repository
+had been previously installed.
 
-Refer to the [test](https://github.com/onechronos/aeroon/tree/master/test)
+Refer to the
+[test](https://github.com/onechronos/aeroon/tree/master/test)
 directory for usage examples that are OCaml translations of some of
-the
-[C examples](https://github.com/real-logic/aeron/tree/master/aeron-samples/src/main/c)
-found in the Aeron repository.
+the [C
+examples](https://github.com/real-logic/aeron/tree/master/aeron-samples/src/main/c)
+found in the [Aeron](https://github.com/real-logic/aeron) repository.
 
