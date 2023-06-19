@@ -8,7 +8,7 @@ To build, first install and build [Aeron](https://github.com/real-logic/aeron), 
 clone this repository:
 ```sh
 git clone https://github.com/onechronos/aeroon.git
-cd aeron
+cd aeroon
 ```
 Finally, build and install Aeroon:
 ```sh
