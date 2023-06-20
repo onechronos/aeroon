@@ -25,8 +25,8 @@ dune build
 dune install
 ```
 Here, `/path/to/aeron` must be replaced with the path of the directory
-where the [Aeron](https://github.com/real-logic/aeron) repository
-had been previously installed.
+where the [Aeron](https://github.com/real-logic/aeron) source code
+repository had been previously installed.
 
 Refer to the
 [test](https://github.com/onechronos/aeroon/tree/master/test)
