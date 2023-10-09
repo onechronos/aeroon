@@ -20,11 +20,21 @@ let () =
           head tail
       | _ -> assert false
     in
-    (* expecting C include files in $AERON_ROOT/aeron-client/src/main/c *)
+    (* expecting C include files in [$AERON_ROOT/aeron-client/src/main/c] *)
     let include_dir = fc [ aeron_root; "aeron-client"; "src"; "main"; "c" ] in
     if Sys.file_exists include_dir then (
-      (* expecting shared object libraries under $AERON_ROOT/cppbuild/Release/lib *)
-      let lib_dir = fc [ aeron_root; "cppbuild"; "Release"; "lib" ] in
+      (* expecting shared object libraries under [$AERON_ROOT/build/lib].
+         In terms of building the Aeron shared-object library, the following
+         worked for the author:
+         {[
+            cd /path/to/aeron
+            rm -rf build
+            mkdir build
+            cd build
+            cmake ..
+         ]}
+      *)
+      let lib_dir = fc [ aeron_root; "lib" ] in
       if Sys.file_exists lib_dir then (
         let module C = Configurator.V1 in
         C.Flags.write_sexp "c_flags.sexp" [ "-I" ^ include_dir ];
