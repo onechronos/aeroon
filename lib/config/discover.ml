@@ -34,7 +34,7 @@ let () =
             cmake ..
          ]}
       *)
-      let lib_dir = fc [ aeron_root; "lib" ] in
+      let lib_dir = fc [ aeron_root; "build"; "lib" ] in
       if Sys.file_exists lib_dir then (
         let module C = Configurator.V1 in
         C.Flags.write_sexp "c_flags.sexp" [ "-I" ^ include_dir ];
